@@ -5,9 +5,9 @@ from urllib.parse import urljoin
 from configuration import Configuration
 from sharepoint_utils import print_and_log
 
-domain = "sharepoint16"
-username = "administrator"
-password = 'Crest@123'
+domain =   "[REDACTED]"
+username = "[REDACTED]"
+password = "[REDACTED]"
 
 
 class SharePoint:
