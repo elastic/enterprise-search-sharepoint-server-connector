@@ -1,0 +1,3 @@
+requests_ntlm
+elastic_enterprise_search
+pyyaml

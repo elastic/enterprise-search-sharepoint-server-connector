@@ -1,0 +1,41 @@
+#Configurations for the SharePoint 2016 Connector
+
+#SharePoint 2016 configuration settings
+#The client id generated while app registration on sharepoint server to access the contents
+sharepoint.client_id: dummy
+#The secret generated while app registration on sharepoint server
+sharepoint.client_secret: dummy
+#The authentication realm of a SharePoint farm
+sharepoint.realm: dummy
+#The address of the sharepoint farm. Example: http://sharepoint-host:14293/
+sharepoint.host_url: http://10.0.9.211:14682
+#List of site collections to fetch the documents from
+sharepoint.site_collections: ['Connector']
+
+#Elastic WorkPlace configuration settings
+#Host url for Workplace search. Example: http://ws-host:3002
+ws.host_url: http://10.0.8.215:3002
+#Access token for Workplace search authentication
+ws.access_token: 52b30c01abe45261fb719d76b67b6520fa429f5a1d1ad8130838adae538982f5
+#Source identifier for the custom source created on the workplace search server
+ws.source_id: 6110f7ce2cbdfd34bc87b16e
+
+#Connector specific configuration settings
+#Denotes whether document permission will be enabled or no
+enable_document_permission: Yes
+#Specifies the objects to be fetched and indexed in the WorkPlace search along with fields that needs to be included/excluded. The list of the objects supported are collection, site, list, and listItem. By default all the objects are fetched
+objects:
+    include_fields:
+    exclude_fields:
+#The time after which all the objects that are modified or created are fetched from Sharepoint. By default, all the objects present in the SharePoint till the end_time are fetched
+start_time:
+#The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
+end_time:
+#The interval after which the connector looks for new/updated objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
+indexing_interval: 60
+#The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
+deletion_interval: 60
+#The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
+log_level: INFO
+#The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
+retry_count: 3
