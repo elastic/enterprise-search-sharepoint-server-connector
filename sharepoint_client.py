@@ -22,18 +22,17 @@ class SharePoint:
         self.configs = configuration.get_all_config()
         self.retry_count = int(self.configs.get('retry_count'))
 
-    def get(self, query):
-        url = self.configs.get('sharepoint.host_url')
+    def get(self, rel_url, query):
         request_headers = {'accept': "application/json;odata=verbose",
                            "content-type": "application/json;odata=verbose"}
-        url = urljoin(url, query)
+        url = urljoin(rel_url, query)
         retry = 0
         while retry <= self.retry_count:
             try:
                 response = requests.get(url, auth=HttpNtlmAuth(
                     domain + "\\" + username, password), headers=request_headers)
                 if response.status_code == requests.codes.ok:
-                    return True
+                    return response
                 else:
                     print_and_log(self.logger, 'error', 'Error while fetching from the sharepoint, url: {}. Retry Count: {}. Error: {}'.format(
                         url, retry, response.text))

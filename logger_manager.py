@@ -34,7 +34,7 @@ def setup_logging(log_name, log_level=logging.INFO):
         file_handler = logging.handlers.RotatingFileHandler(
             log_file, mode="a", maxBytes=10485760, backupCount=10)
         # Format logs
-        fmt_str = "%(asctime)s %(levelname)s %(thread)d - %(message)s"
+        fmt_str = "%(asctime)s %(levelname)s p%(process)s %(thread)d [%(filename)s] [%(funcName)s] - %(message)s"
         formatter = logging.Formatter(fmt_str)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

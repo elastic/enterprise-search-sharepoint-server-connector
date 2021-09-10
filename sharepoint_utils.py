@@ -1,3 +1,6 @@
+from tika import parser
+
+
 def print_and_log(logger, level, message):
     print(message)
 
@@ -25,3 +28,13 @@ def log_warn(logger, message):
 
 def log_error(logger, message):
     logger.error(message)
+
+
+def extract(file):
+    try:
+        parsed = parser.from_file(file)
+        parsed_text = parsed['content']
+        parsed_text = parsed_text.lower()
+        return parsed_text
+    except Exception:
+        raise Exception

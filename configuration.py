@@ -51,7 +51,7 @@ class Configuration:
             self.logger.warn("The parameter {} should be a positive integer, found: {}. Considering the default value as 60 minutes".format(
                 param_name, interval))
         elif not interval > 0:
-            self.logger.warn("The parameter {} should be a positive integer, found: {}. Considering the default value as 60 minutes".format(
+            self.logger.warn("The parameter {} must be a positive integer, found: {}. Considering the default value as 60 minutes".format(
                 param_name, interval))
 
     def validate(self):

@@ -9,33 +9,33 @@ sharepoint.client_secret: dummy
 sharepoint.realm: dummy
 #The address of the sharepoint farm. Example: http://sharepoint-host:14293/
 sharepoint.host_url: http://10.0.9.211:14682
-#List of site collections to fetch the documents from
-sharepoint.site_collections: ['Connector']
-
+#Specifies the site collections whose contents the user wants to fetch and index.
+site_collections: 
+    - Connector
 #Elastic WorkPlace configuration settings
-#Host url for Workplace search. Example: http://ws-host:3002
-ws.host_url: http://10.0.8.215:3002
 #Access token for Workplace search authentication
-ws.access_token: 52b30c01abe45261fb719d76b67b6520fa429f5a1d1ad8130838adae538982f5
+ws.access_token: "52b30c01abe45261fb719d76b67b6520fa429f5a1d1ad8130838adae538982f5"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
 #Source identifier for the custom source created on the workplace search server
-ws.source_id: 6110f7ce2cbdfd34bc87b16e
-
+ws.source_id: "61373edd2cbdfd2b7e78d5fb"
+#Workplace search server address Example: http://10.0.1.123:3002 
+ws.host_url: "http://10.0.8.215:3002/"
 #Connector specific configuration settings
 #Denotes whether document permission will be enabled or no
 enable_document_permission: Yes
 #Specifies the objects to be fetched and indexed in the WorkPlace search along with fields that needs to be included/excluded. The list of the objects supported are collection, site, list, and listItem. By default all the objects are fetched
 objects:
-    include_fields:
-    exclude_fields:
+    sites:
+        include_fields:
+        exclude_fields:
+    lists:
 #The time after which all the objects that are modified or created are fetched from Sharepoint. By default, all the objects present in the SharePoint till the end_time are fetched
-start_time:
+start_time : "2021-08-16T13:58:12Z"
 #The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
-end_time:
+end_time : "2021-08-31T13:58:12Z"
 #The interval after which the connector looks for new/updated objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
 indexing_interval: 60
 #The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
 deletion_interval: 60
 #The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
 log_level: INFO
-#The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3
