@@ -10,7 +10,7 @@ sharepoint.realm: dummy
 #The address of the sharepoint farm. Example: http://sharepoint-host:14293/
 sharepoint.host_url: http://10.0.9.211:14682
 #Specifies the site collections whose contents the user wants to fetch and index.
-site_collections: 
+sharepoint.site_collections: 
     - Connector
 #Elastic WorkPlace configuration settings
 #Access token for Workplace search authentication
@@ -38,4 +38,5 @@ indexing_interval: 60
 deletion_interval: 60
 #The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
 log_level: INFO
+#The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3

@@ -24,7 +24,7 @@ class FetchIndex:
         self.ws_source = data.get('ws.source_id')
         self.sharepoint_host = data.get('sharepoint.host_url')
         self.objects = data.get('objects')
-        self.site_collections = data.get('site_collections')
+        self.site_collections = data.get('sharepoint.site_collections')
         self.query = query
         self.start_time = data.get('start_time')
         self.end_time = data.get('end_time')
