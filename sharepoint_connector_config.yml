@@ -8,17 +8,17 @@ sharepoint.client_secret: dummy
 #The authentication realm of a SharePoint farm
 sharepoint.realm: dummy
 #The address of the sharepoint farm. Example: http://sharepoint-host:14293/
-sharepoint.host_url: http://10.0.9.211:14682
+sharepoint.host_url: http://sharepoint-host:14682/
 #Specifies the site collections whose contents the user wants to fetch and index.
 sharepoint.site_collections: 
     - Connector
-#Elastic WorkPlace configuration settings
+#Workplace Search configuration settings
 #Access token for Workplace search authentication
-ws.access_token: "52b30c01abe45261fb719d76b67b6520fa429f5a1d1ad8130838adae538982f5"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+workplace_search.access_token: "12345678"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
 #Source identifier for the custom source created on the workplace search server
-ws.source_id: "61373edd2cbdfd2b7e78d5fb"
-#Workplace search server address Example: http://10.0.1.123:3002 
-ws.host_url: "http://10.0.8.215:3002/"
+workplace_search.source_id: "12345678"
+#Workplace search server address Example: http://es-host:3002 
+enterprise_search.host_url: "http://es-host:3002/"
 #Connector specific configuration settings
 #Denotes whether document permission will be enabled or no
 enable_document_permission: Yes
@@ -28,10 +28,11 @@ objects:
         include_fields:
         exclude_fields:
     lists:
+    items:
 #The time after which all the objects that are modified or created are fetched from Sharepoint. By default, all the objects present in the SharePoint till the end_time are fetched
-start_time : "2021-08-16T13:58:12Z"
+start_time : "2021-08-16T13:58:12"
 #The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
-end_time : "2021-08-31T13:58:12Z"
+end_time : "2021-08-31T13:58:12"
 #The interval after which the connector looks for new/updated objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
 indexing_interval: 60
 #The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
