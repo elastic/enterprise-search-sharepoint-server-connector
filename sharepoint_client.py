@@ -1,14 +1,15 @@
 import requests
 import time
+import json
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
 from urllib.parse import urljoin
 from configuration import Configuration
 from sharepoint_utils import print_and_log
 
-domain = "[redacted]"
-username = "[redacted]"
-password = "[redacted]"
+domain = '[REDACTED]'
+username = '[REDACTED]'
+password = '[REDACTED]'
 
 
 class SharePoint:
@@ -28,6 +29,10 @@ class SharePoint:
         self.retry_count = int(self.configs.get("retry_count"))
 
     def get(self, rel_url, query):
+        """Invokes a GET call to the Sharepoint server
+            Returns:
+                    Response of the GET call
+        """
         request_headers = {
             "accept": "application/json;odata=verbose",
             "content-type": "application/json;odata=verbose"
@@ -41,14 +46,14 @@ class SharePoint:
                     auth=HttpNtlmAuth(domain + "\\" + username, password),
                     headers=request_headers
                 )
-                if response.status_code == requests.codes.ok:
+                if response.status_code == (requests.codes.ok or requests.codes.not_found):
                     return response
                 else:
                     print_and_log(
                         self.logger,
                         "error",
                         "Error while fetching from the sharepoint, url: %s. Retry Count: %s. Error: %s"
-                        % (url, retry, response.text)
+                        % (url, retry, response.reason)
                     )
                     # This condition is to avoid sleeping for the last time
                     if retry < self.retry_count:

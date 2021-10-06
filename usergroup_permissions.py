@@ -12,6 +12,10 @@ class Permissions:
         self.logger.info("Initilized Permissions class")
 
     def check_permissions(self, key, rel_url, title=None, id=None):
+        """ Checks if any object has unique permissions
+            Returns:
+                unique: Boolean
+        """
         self.logger.info("Checking the permissions for object: %s" % (key))
         maps = {
             SITES: "_api/web/HasUniqueRoleAssignments",
@@ -20,14 +24,20 @@ class Permissions:
         }
         if not rel_url.endswith("/"):
             rel_url = rel_url + "/"
-        unique = self.sharepoint_client.get(urljoin(rel_url, maps[key]), query="?")
-        
+        unique = self.sharepoint_client.get(
+            urljoin(rel_url, maps[key]), query="?")
+
         self.logger.info("Checked the permissions for object: %s" % (key))
-        unique = unique.json()
-        unique = unique['d'].get("HasUniqueRoleAssignments")
-        return unique
+        if unique:
+            unique = unique.json()
+            unique = unique['d'].get("HasUniqueRoleAssignments")
+            return unique
 
     def fetch_users(self, key, rel_url, title=None, id=None):
+        """ Invokes GET calls to fetch unique permissions assigned to an object
+            Returns:
+                Response of the GET call
+        """
         self.logger.info("Fetching the user roles for key: %s" % (key))
         maps = {
             SITES: "_api/web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
@@ -40,4 +50,5 @@ class Permissions:
 
     def fetch_groups(self, rel_url, userid):
         self.logger.info("Fetching the group roles for userid: %s" % (userid))
-        self.sharepoint_client.get(rel_url, f"_api/web/GetUserById({userid})/groups")
+        self.sharepoint_client.get(
+            rel_url, f"_api/web/GetUserById({userid})/groups")

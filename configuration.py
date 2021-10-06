@@ -20,17 +20,19 @@ class Configuration:
                     self.logger,
                     "exception",
                     "Error while reading the configurations from %s file at line %s."
-                        % (file_name, mark.line),
+                    % (file_name, mark.line),
                 )
             else:
                 print_and_log(
                     self.logger,
                     "exception",
                     "Something went wrong while parsing yaml file %s. Error: %s"
-                        % (file_name, exception),
+                    % (file_name, exception),
                 )
 
     def validate_date(self, param_name, input_date):
+        """Validates the date format in the parameter being passed 
+        """
         current_time = int(
             calendar.timegm(datetime.datetime.utcnow().timetuple())
         )
@@ -39,13 +41,13 @@ class Configuration:
                 input_date = int(
                     calendar.timegm(
                         datetime.datetime.strptime(
-                            input_date, "%Y-%m-%dT%H:%M:%S"
+                            input_date, "%Y-%m-%dT%H:%M:%SZ"
                         ).timetuple()
                     )
                 )
             except ValueError:
                 self.logger.warn(
-                    'The parameter %s is not in the right format. Expected format "YYYY-MM-DDThh:mm:ss", found: %s'
+                    'The parameter %s is not in the right format. Expected format "YYYY-MM-DDThh:mm:ssZ", found: %s'
                     % (param_name, input_date)
                 )
                 return False
@@ -66,6 +68,9 @@ class Configuration:
         return True
 
     def validate_interval(self, param_name, interval):
+        """Validates the indexing and de-indexing inervals specified in 
+            the yaml configuration file
+        """
         if not interval:
             self.logger.warn(
                 "The parameter %s is not present. Considering the default value as 60 minutes"
