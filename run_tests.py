@@ -27,6 +27,8 @@ class Tests:
         self.retry_count = int(self.configs.get("retry_count"))
 
     def test_sharepoint_conn(self):
+        """ Tests the connection to the sharepoint server by calling a basic get request to fetch sites in a collection and logs proper messages
+        """
         logger.info("Starting SharePoint connectivity tests..")
         sharepoint_client = SharePoint(logger)
         response = sharepoint_client.get(urljoin(self.configs.get("sharepoint.host_url"), "/sites/Connector/_api/web/webs"), query="?")
@@ -47,6 +49,8 @@ class Tests:
         logger.info("SharePoint connectivity tests completed..")
 
     def test_ws_conn(self):
+        """ Tests the connection to the Enterprise search host
+        """
         logger.info("Starting Workplace connectivity tests..")
         retry = 0
         while retry <= self.retry_count:
@@ -90,6 +94,8 @@ class Tests:
         logger.info("Workplace connectivity tests completed..")
 
     def test_ingestion(self):
+        """ Tests the successful ingestion of a sample document to the Workplace search 
+        """
         logger.info("Starting Workplace ingestion tests..")
         document = [
             {
