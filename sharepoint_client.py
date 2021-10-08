@@ -1,6 +1,5 @@
 import requests
 import time
-import json
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
 from urllib.parse import urljoin
@@ -74,3 +73,11 @@ class SharePoint:
                 else:
                     return False
                 retry += 1
+
+    def get_query(self, start_time, end_time, param_name):
+        query = ""
+        if param_name == ("sites" or "lists"):
+            query = f"?$filter=(LastItemModifiedDate ge datetime'{start_time}') and (LastItemModifiedDate le datetime'{end_time}')"
+        elif param_name == "items":
+            query = f"?$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"
+        return query

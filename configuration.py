@@ -31,7 +31,7 @@ class Configuration:
                 )
 
     def validate_date(self, param_name, input_date):
-        """Validates the date format in the parameter being passed 
+        """Validates the date format in the parameter being passed
         """
         current_time = int(
             calendar.timegm(datetime.datetime.utcnow().timetuple())
@@ -68,7 +68,7 @@ class Configuration:
         return True
 
     def validate_interval(self, param_name, interval):
-        """Validates the indexing and de-indexing inervals specified in 
+        """Validates the indexing and de-indexing inervals specified in
             the yaml configuration file
         """
         if not interval:

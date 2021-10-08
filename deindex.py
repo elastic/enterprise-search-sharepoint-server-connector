@@ -7,7 +7,6 @@ from elastic_enterprise_search import WorkplaceSearch
 from sharepoint_client import SharePoint
 from configuration import Configuration
 import logger_manager as log
-from fetch_index import FetchIndex
 
 logger = log.setup_logging('sharepoint_connector_deindex')
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
@@ -32,9 +31,9 @@ class Deindex:
         logger.info("Deindexing items...")
         delete_site = []
         for site_url, item_details in lists_item_ids.items():
-            doc = []
             delete_list = []
             for list_name, items in item_details.items():
+                doc = []
                 for item_id in items:
                     url = f"{self.sharepoint_host}{site_url}/_api/web/lists/getbytitle(\'{list_name}\')/items"
                     resp = self.sharepoint_client.get(
@@ -143,7 +142,7 @@ def start():
                             "Error while updating the doc_id json file. Error: %s"
                             % exception
                         )
-            except FileNotFoundError as exception:
+            except FileNotFoundError:
                 logger.warn(
                     "[Fail] File doc_id.json is not present, none of the objects are indexed.")
             try:

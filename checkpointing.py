@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import json
 
@@ -59,15 +58,14 @@ class Checkpoint:
             end_time,
             collection
         )
-        query = f"?$filter= (Created ge datetime'{start_time}') and (Created le datetime'{end_time}')"
-        return query
+        return start_time, end_time
 
     def set_checkpoint(self, collection, current_time):
-        self.logger.info(
-            "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
-            % (current_time, collection, CHECKPOINT_PATH)
-        )
         if (os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0):
+            self.logger.info(
+                "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
+                % (current_time, collection, CHECKPOINT_PATH)
+            )
             with open(CHECKPOINT_PATH) as checkpoint_store:
                 try:
                     checkpoint_list = json.load(checkpoint_store)
@@ -79,6 +77,10 @@ class Checkpoint:
                     )
 
         else:
+            self.logger.info(
+                "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
+                % (self.data.get('end_time'), collection, CHECKPOINT_PATH)
+            )
             checkpoint_list = {collection: self.data.get('end_time')}
 
         with open(CHECKPOINT_PATH, "w") as checkpoint_store:
