@@ -1,0 +1,43 @@
+#Configurations for the SharePoint 2016 Connector
+
+#SharePoint 2016 configuration settings
+#The client id generated while app registration on sharepoint server to access the contents
+sharepoint.client_id: dummy
+#The secret generated while app registration on sharepoint server
+sharepoint.client_secret: dummy
+#The authentication realm of a SharePoint farm
+sharepoint.realm: dummy
+#The address of the sharepoint farm. Example: http://sharepoint-host:14293/
+sharepoint.host_url: http://sharepoint-host:14682/
+#Specifies the site collections whose contents the user wants to fetch and index.
+sharepoint.site_collections: 
+    - Connector
+#Workplace Search configuration settings
+#Access token for Workplace search authentication
+workplace_search.access_token: "12345678"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+#Source identifier for the custom source created on the workplace search server
+workplace_search.source_id: "12345678"
+#Workplace search server address Example: http://es-host:3002 
+enterprise_search.host_url: "http://es-host:3002/"
+#Connector specific configuration settings
+#Denotes whether document permission will be enabled or no
+enable_document_permission: Yes
+#Specifies the objects to be fetched and indexed in the WorkPlace search along with fields that needs to be included/excluded. The list of the objects supported are collection, site, list, and listItem. By default all the objects are fetched
+objects:
+    sites:
+        include_fields:
+        exclude_fields:
+    lists:
+    items:
+#The time after which all the objects that are modified or created are fetched from Sharepoint. By default, all the objects present in the SharePoint till the end_time are fetched
+start_time : "2021-08-16T13:58:12"
+#The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
+end_time : "2021-08-31T13:58:12"
+#The interval after which the connector looks for new/updated objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
+indexing_interval: 60
+#The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
+deletion_interval: 60
+#The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
+log_level: INFO
+#The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
+retry_count: 3
