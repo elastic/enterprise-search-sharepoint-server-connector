@@ -38,6 +38,8 @@ indexing_interval: 60
 #The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
 deletion_interval: 60
 #The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
-log_level: INFO
+log_level: info
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3
+#the path of csv file containing mapping of sharepoint user ID to Workplace user ID
+sharepoint_workplace_user_mapping: "C:/Users/abc/folder_name/file_name.csv"

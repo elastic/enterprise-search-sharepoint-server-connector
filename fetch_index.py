@@ -11,8 +11,11 @@ from usergroup_permissions import Permissions
 from datetime import datetime
 import os
 import json
+import csv
 from sharepoint_utils import extract
 import re
+import adapter
+
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
 logger = log.setup_logging("sharepoint_connector_index")
@@ -27,7 +30,7 @@ ITEMS = "items"
 def check_response(response, error_message, exception_message, param_name):
     """Checks the response received from sharepoint server
         Returns:
-            response_data: response received from invoking
+            response_data: response received from invoking  
     """
     if not response:
         logger.error(error_message)
@@ -59,19 +62,39 @@ class FetchIndex:
         self.sharepoint_client = SharePoint(logger)
         self.permissions = Permissions(logger, self.sharepoint_client)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
+        self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
+
+    def get_schema_fields(self, document_name):
+        """ returns the schema of all the include_fields or exclude_fields specified in the configuration file.
+            :param document_name: document name from 'sites', 'lists' or 'items'
+            Returns:
+                schema: included and excluded fields schema
+        """
+        fields = self.objects.get(document_name)
+        adapter_schema = adapter.DEFAULT_SCHEMA[document_name]
+        if fields:
+            include_fields = fields.get("include_fields")
+            exclude_fields = fields.get("exclude_fields")
+            if include_fields:
+                adapter_schema = {key:val for key, val in adapter_schema.items() if val in include_fields}
+            elif exclude_fields:
+                adapter_schema = {key:val for key, val in adapter_schema.items() if val not in exclude_fields}
+        return adapter_schema
+
 
     def index_sites(self, collection, ids, index):
         """This method fetches sites from a collection and invokes the
             index permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
             Returns:
-                document: response of sharepoint GET call, with fields specified in the schema
+                document: response of sharepoint GET call, with fields specified in the schema 
         """
         rel_url = urljoin(
             self.sharepoint_host, f"/sites/{collection}/_api/web/webs"
         )
         logger.info("Fetching the sites detail from url: %s" % (rel_url))
-        query = self.sharepoint_client.get_query(self.start_time, self.end_time, SITES)
+        query = self.sharepoint_client.get_query(
+            self.start_time, self.end_time, SITES)
         response = self.sharepoint_client.get(rel_url, query)
 
         response_data = check_response(
@@ -88,8 +111,8 @@ class FetchIndex:
             "Successfuly fetched and parsed the sites response from SharePoint"
         )
         logger.info("Indexing the sites to the Workplace")
-        schema = {'created_at': 'Created', 'id': 'Id', 'last_updated': 'LastItemModifiedDate',
-                  'relative_url': 'ServerRelativeUrl', 'title': 'Title', 'url': 'Url'}
+
+        schema = self.get_schema_fields(SITES)
         document = []
 
         if index:
@@ -99,7 +122,7 @@ class FetchIndex:
                     doc[field] = response_data[num].get(response_field, None)
                 # need to convert date to iso else workplace search throws error on date format Invalid field value: Value '2021-09-29T08:13:00' cannot be parsed as a date (RFC 3339)"]}
                 doc['created_at'] += 'Z'
-                if self.enable_permission is True:
+                if self.enable_permission == True:
                     doc["_allow_permissions"] = self.index_permissions(
                         key=SITES, collection=collection, site=doc['relative_url'])
                 document.append(doc)
@@ -122,7 +145,7 @@ class FetchIndex:
         return response_data
 
     def get_site_paths(self, collection, ids, response_data=None):
-        """Extracts the server relative paths of all the sites present in a
+        """Extracts the server relative paths of all the sites present in a 
             collection.
             Returns:
                 sites: list of site paths
@@ -160,7 +183,8 @@ class FetchIndex:
                 % (site, rel_url)
             )
 
-            query = self.sharepoint_client.get_query(self.start_time, self.end_time, LISTS)
+            query = self.sharepoint_client.get_query(
+                self.start_time, self.end_time, LISTS)
             response = self.sharepoint_client.get(
                 rel_url, query + " and BaseType ne 1 and Hidden eq false and ContentTypesEnabled eq false")
 
@@ -180,8 +204,7 @@ class FetchIndex:
             )
 
             base_list_url = urljoin(self.sharepoint_host, f"{site}/Lists/")
-            schema_list = {'created_at': 'Created', 'id': 'Id',
-                           'relative_url': 'ParentWebUrl', 'title': 'Title'}
+            schema_list = self.get_schema_fields(LISTS)
 
             if index:
                 ids["lists"].update({site: {}})
@@ -190,10 +213,11 @@ class FetchIndex:
                     for field, response_field in schema_list.items():
                         doc[field] = response_data[num].get(
                             response_field, None)
-                    if self.enable_permission is True:
+                    if self.enable_permission == True:
                         doc["_allow_permissions"] = self.index_permissions(
                             key=LISTS, collection=collection, site=site, list_name=doc['title'], list_url=doc['relative_url'], itemid=None)
-                    doc["url"] = urljoin(base_list_url, re.sub(r'[^ \w+]', '', doc["title"]))
+                    doc["url"] = urljoin(base_list_url, re.sub(
+                        r'[^ \w+]', '', doc["title"]))
                     document.append(doc)
                     ids["lists"][site].update({doc["id"]: doc["title"]})
                 logger.info(
@@ -270,7 +294,8 @@ class FetchIndex:
                 % (value[1], rel_url)
             )
 
-            query = self.sharepoint_client.get_query(self.start_time, self.end_time, ITEMS)
+            query = self.sharepoint_client.get_query(
+                self.start_time, self.end_time, ITEMS)
             response = self.sharepoint_client.get(rel_url, query)
 
             response_data = check_response(
@@ -289,8 +314,9 @@ class FetchIndex:
             )
 
             list_name = re.sub(r'[^ \w+]', '', value[1])
-            base_item_url = urljoin(self.sharepoint_host, f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
-            schema_item = {'title': 'Title', 'id': 'GUID', 'created_at': 'Created', 'author_id': 'AuthorId'}
+            base_item_url = urljoin(self.sharepoint_host,
+                f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
+            schema_item = self.get_schema_fields(ITEMS)
             document = []
 
             if index:
@@ -316,9 +342,9 @@ class FetchIndex:
                     for field, response_field in schema_item.items():
                         doc[field] = response_data[num].get(
                             response_field, None)
-                    if self.enable_permission is True:
+                    if self.enable_permission == True:
                         doc["_allow_permissions"] = self.index_permissions(
-                            key=ITEMS, collection=collection, list_name=value[1], list_url=value[0], itemid=doc['id'])
+                            key=ITEMS, collection=collection, list_name=value[1], list_url=value[0], itemid=str(response_data[num]["Id"]))
                     doc["url"] = base_item_url + str(response_data[num]["Id"])
                     document.append(doc)
                     ids["list_items"][value[0]][value[1]].append(
@@ -402,17 +428,24 @@ class FetchIndex:
         groups = []
         roles = check_response(roles, "Cannot fetch the roles for the given object %s at url %s" % (
             key, rel_url), "Error while parsing response for fetch_users for %s at url %s." % (key, rel_url), "roles")
+        rows = {}
+        if (os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0):
+            with open(self.mapping_sheet_path) as file:
+                csvreader = csv.reader(file)
+                for row in csvreader:
+                    rows[row[0]] = row[1]
         for role in roles:
             groups.append(role["Member"]["LoginName"])
             users = role["Member"].get("Users")
             if users:
                 users = users.get("results")
                 for user in users:
+                    user_name = rows.get(user['Title'], user['Title'])
                     try:
                         self.ws_client.add_user_permissions(
                             content_source_id=self.ws_source,
                             http_auth=self.ws_token,
-                            user=user["Title"],
+                            user=user_name,
                             body={
                                 "permissions": [role["Member"]["LoginName"]]
                             },
@@ -432,8 +465,8 @@ class FetchIndex:
                         return []
         return groups
 
-    def indexing(self, collection, current_time):
-        """This method fetches all the objects from sharepoint server and
+    def indexing(self, collection, current_time, ids):
+        """This method fetches all the objects from sharepoint server and 
             ingests them into the workplace search
         """
         sites = []
@@ -442,18 +475,6 @@ class FetchIndex:
             "Starting to index all the objects configured in the object field: %s"
             % (str(self.objects))
         )
-        if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
-            with open(IDS_PATH) as ids_store:
-                try:
-                    ids = json.load(ids_store)
-                except ValueError as exception:
-                    self.logger.exception(
-                        "Error while parsing the json file of the ids store from path: %s. Error: %s"
-                        % (IDS_PATH, exception)
-                    )
-
-        else:
-            ids = {"sites": {}, "lists": {}, "list_items": {}}
 
         for key in self.objects:
             response = None
@@ -487,17 +508,13 @@ class FetchIndex:
             "Successfuly fetched all the objects for site collection: %s"
             % (collection)
         )
-        with open(IDS_PATH, "w") as f:
-            try:
-                json.dump(ids, f, indent=4)
-            except ValueError as exception:
-                logger.warn(
-                    'Error while adding ids to json file. Error: {}'.format(exception))
+        
         logger.info(
             "Saving the checkpoint for the site collection: %s" % (collection)
         )
         if not self.is_error:
             self.checkpoint.set_checkpoint(collection, current_time)
+        return ids
 
 
 def start():
@@ -520,20 +537,40 @@ def start():
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
         data = config.reload_configs()
+        ids_collection = {}
+        if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
+            with open(IDS_PATH) as ids_store:
+                try:
+                    ids_collection = json.load(ids_store)
+                except ValueError as exception:
+                    logger.exception(
+                        "Error while parsing the json file of the ids store from path: %s. Error: %s"
+                        % (IDS_PATH, exception)
+                    )
         for collection in data.get("sharepoint.site_collections"):
             logger.info(
                 "Starting the data fetching for site collection: %s"
                 % (collection)
             )
             check = Checkpoint(logger, data)
-            start_time, end_time = check.get_checkpoint(collection, current_time)
+            start_time, end_time = check.get_checkpoint(
+                collection, current_time)
             logger.info(
                 "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
                 % (start_time, end_time)
             )
-
+            if not ids_collection.get(collection):
+                ids_collection[collection] = {
+                    "sites": {}, "lists": {}, "list_items": {}}
             indexer = FetchIndex(data, start_time, end_time)
-            indexer.indexing(collection, current_time)
+            ids_collection[collection] = indexer.indexing(
+                collection, current_time, ids_collection[collection])
+        with open(IDS_PATH, "w") as f:
+            try:
+                json.dump(ids_collection, f, indent=4)
+            except ValueError as exception:
+                logger.warn(
+                    'Error while adding ids to json file. Error: %s'%(exception))
         try:
             indexing_interval = int(data.get("indexing_interval", 60))
         except ValueError as exception:

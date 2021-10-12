@@ -75,8 +75,14 @@ class SharePoint:
                 retry += 1
 
     def get_query(self, start_time, end_time, param_name):
+        """ returns the query for each objects
+            :param start_time: start time of the interval for fetching the documents
+            :param end_time: end time of the interval for fetching the documents
+            Returns:
+                query: query for each object
+        """
         query = ""
-        if param_name == ("sites" or "lists"):
+        if param_name in ["sites", "lists"]:
             query = f"?$filter=(LastItemModifiedDate ge datetime'{start_time}') and (LastItemModifiedDate le datetime'{end_time}')"
         elif param_name == "items":
             query = f"?$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"

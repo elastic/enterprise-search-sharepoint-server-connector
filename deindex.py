@@ -58,6 +58,7 @@ class Deindex:
                 delete_site.append(site_url)
         for site_url in delete_site:
             lists_item_ids.pop(site_url)
+        return ids
 
     def deindexing_lists(self, collection, ids):
         """Fetches the id's of deleted lists from the sharepoint server and
@@ -86,6 +87,7 @@ class Deindex:
                 delete.append(site_url)
         for site_url in delete:
             lists_ids.pop(site_url)
+        return ids
 
     def deindexing_sites(self, collection, ids):
         """Fetches the ids' of deleted sites from the sharepoint server and
@@ -108,6 +110,7 @@ class Deindex:
             document_ids=doc)
         for id in doc:
             site_details.pop(id)
+        return ids
 
 
 def start():
@@ -124,37 +127,40 @@ def start():
     deindexing_interval = 60
     while True:
         data = config.reload_configs()
-        for collection in data.get('sharepoint.site_collections'):
-            logger.info(
-                'Starting the deindexing for site collection: %s' % collection)
-            deindexer = Deindex(data)
-            try:
-                with open(IDS_PATH) as f:
-                    ids = json.load(f)
-                deindexer.deindexing_sites(collection, ids)
-                deindexer.deindexing_lists(collection, ids)
-                deindexer.deindexing_items(collection, ids)
-                with open(IDS_PATH, "w") as f:
-                    try:
-                        json.dump(ids, f, indent=4)
-                    except ValueError as exception:
-                        logger.exception(
-                            "Error while updating the doc_id json file. Error: %s"
-                            % exception
-                        )
-            except FileNotFoundError:
-                logger.warn(
-                    "[Fail] File doc_id.json is not present, none of the objects are indexed.")
-            try:
-                deindexing_interval = int(
-                    data.get('deletion_interval', 60))
-            except Exception as exception:
-                logger.warn('Error while converting the parameter deindexing_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
-                    deindexing_interval, exception))
-            # TODO: need to use schedule instead of time.sleep
-            logger.info('Sleeping..')
-            # time.sleep(5)
-            time.sleep(deindexing_interval * 60)
+        deindexer = Deindex(data)
+        try:
+            with open(IDS_PATH) as f:
+                ids_collection = json.load(f)
+            for collection in data.get('sharepoint.site_collections'):
+                logger.info(
+                    'Starting the deindexing for site collection: %s' % collection)
+                if ids_collection.get(collection):
+                    ids = ids_collection[collection]
+                    ids = deindexer.deindexing_sites(collection, ids)
+                    ids = deindexer.deindexing_lists(collection, ids)
+                    ids = deindexer.deindexing_items(collection, ids)
+                    ids_collection[collection] = ids
+            with open(IDS_PATH, "w") as f:
+                try:
+                    json.dump(ids_collection, f, indent=4)
+                except ValueError as exception:
+                    logger.exception(
+                        "Error while updating the doc_id json file. Error: %s"
+                        % exception
+                    )
+        except FileNotFoundError as exception:
+            logger.warn(
+                "[Fail] File doc_id.json is not present, none of the objects are indexed.")
+        
+        try:
+            deindexing_interval = int(
+                data.get('deletion_interval', 60))
+        except Exception as exception:
+            logger.warn('Error while converting the parameter deindexing_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
+                deindexing_interval, exception))
+        # TODO: need to use schedule instead of time.sleep
+        logger.info('Sleeping..')
+        time.sleep(deindexing_interval * 60)
 
 
 if __name__ == "__main__":
