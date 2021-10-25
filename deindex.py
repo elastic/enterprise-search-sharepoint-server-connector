@@ -124,9 +124,9 @@ def start():
         print_and_log(
             logger, 'error', 'Terminating the de-indexing as the configuration parameters are not valid')
         exit(0)
+    data = config.reload_configs()
     deindexing_interval = 60
     while True:
-        data = config.reload_configs()
         deindexer = Deindex(data)
         try:
             with open(IDS_PATH) as f:

@@ -41,7 +41,8 @@ schema = {
     },
     'enable_document_permission': {
         'required': False,
-        'type': 'boolean'
+        'type': 'boolean',
+        'default': True
     },
     'objects': {
         'type': 'dict',
@@ -95,32 +96,38 @@ schema = {
         'required': False,
         'type': 'datetime',
         'max': datetime.datetime.utcnow(),
+        'default': (datetime.datetime.utcnow() - datetime.timedelta(days=180)).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'coerce': validate_date_new
     },
     'end_time': {
         'required': False,
         'type': 'datetime',
         'max': datetime.datetime.utcnow(),
+        'default': (datetime.datetime.utcnow()).strftime('%Y-%m-%dT%H:%M:%SZ'),
         'coerce': validate_date_new
     },
     'indexing_interval': {
         'required': False,
         'type': 'integer',
+        'default': 60,
         'min': 1
     },
     'deletion_interval': {
         'required': False,
         'type': 'integer',
+        'default': 60,
         'min': 1
     },
     'log_level': {
         'required': False,
         'type': 'string',
+        'default': 'info',
         'allowed': ['debug', 'info', 'warn', 'error']
     },
     'retry_count': {
         'required': False,
         'type': 'integer',
+        'default': 3,
         'min': 1
     },
     'sharepoint_workplace_user_mapping': {

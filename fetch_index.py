@@ -12,6 +12,7 @@ from datetime import datetime
 import os
 import json
 import csv
+from tika.tika import TikaException
 from sharepoint_utils import extract
 import re
 import adapter
@@ -338,7 +339,11 @@ class FetchIndex:
                         response = self.sharepoint_client.get(
                             urljoin(self.sharepoint_host, url_s), query='?')
                         if response.status_code == requests.codes.ok:
-                            doc['body'] = extract(response.content)
+                            try:
+                                doc['body'] = extract(response.content)
+                            except TikaException as exception:
+                                logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
+                                doc['body'] = {}
                     for field, response_field in schema_item.items():
                         doc[field] = response_data[num].get(
                             response_field, None)
@@ -533,10 +538,9 @@ def start():
         exit(0)
 
     indexing_interval = 60
-
+    data = config.reload_configs()
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
-        data = config.reload_configs()
         ids_collection = {}
         if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
             with open(IDS_PATH) as ids_store:

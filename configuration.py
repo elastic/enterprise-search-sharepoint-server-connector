@@ -31,19 +31,21 @@ class Configuration:
                 )
 
     def validate(self):
+        """Validates each properties defined in the yaml configuration file
+        """
         self.logger.info("Validating the configuration parameters")
         validator = Validator(schema)
         validator.validate(self.configurations, schema)
         if validator.errors:
-            print_and_log(self.logger, "error", "Error while validating the config. Errors: %s" % (validator.errors))
+            print_and_log(self.logger, "error", "Error while validating the config. Errors: %s" % (
+                validator.errors))
             return False
         self.logger.info("Successfully validated the config file")
-        return True
-
-    def get_all_config(self):
-        return self.configurations
+        return validator.document
 
     def reload_configs(self):
+        """Returns the configuration parameters
+        """
         try:
             with open(self.file_name) as stream:
                 self.configurations = yaml.safe_load(stream)
@@ -55,4 +57,8 @@ class Configuration:
                     self.file_name, exception
                 ),
             )
+        self.configurations = self.validate()
+        # Converting datetime object to string
+        for date_config in ["start_time", "end_time"]:
+            self.configurations[date_config] = self.configurations[date_config].strftime('%Y-%m-%dT%H:%M:%SZ')
         return self.configurations

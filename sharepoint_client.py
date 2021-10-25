@@ -24,7 +24,7 @@ class SharePoint:
                 "[Fail] Terminating the connector as the configuration parameters are not valid"
             )
             exit(0)
-        self.configs = configuration.get_all_config()
+        self.configs = configuration.reload_configs()
         self.retry_count = int(self.configs.get("retry_count"))
 
     def get(self, rel_url, query):
