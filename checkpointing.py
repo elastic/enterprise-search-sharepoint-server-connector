@@ -10,6 +10,12 @@ class Checkpoint:
         self.data = data
 
     def get_checkpoint(self, collection, current_time):
+        """This method fetches the checkpoint from the checkpoint file in
+           the local storage. If the file does not exist, it takes the
+           checkpoint details from the configuration file.
+           :param collection: collection name
+           :param current_time: current time
+        """
         self.logger.info(
             "Fetching the checkpoint details from the checkpoint file: %s"
             % CHECKPOINT_PATH
@@ -61,6 +67,11 @@ class Checkpoint:
         return start_time, end_time
 
     def set_checkpoint(self, collection, current_time):
+        """This method updates the existing checkpoint json file or creates
+           a new checkpoint json file in case it is not present
+           :param collection: collection name
+           :param current_time: current time
+        """
         if (os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0):
             self.logger.info(
                 "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"

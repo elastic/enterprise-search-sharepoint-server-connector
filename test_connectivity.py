@@ -28,6 +28,8 @@ def settings():
 
 @pytest.mark.sharepoint
 def test_sharepoint(settings):
+    """ Tests the connection to the sharepoint server by calling a basic get request to fetch sites in a collection and logs proper messages
+    """
     configs, _ = settings
     logger.info("Starting SharePoint connectivity tests..")
     sharepoint_client = SharePoint(logger)
@@ -43,6 +45,8 @@ def test_sharepoint(settings):
 
 @pytest.mark.workplace
 def test_workplace(settings):
+    """ Tests the connection to the Enterprise search host
+    """
     configs, retry_count = settings
     logger.info("Starting Workplace connectivity tests..")
     enterprise_search_host = configs.get("enterprise_search.host_url")
@@ -87,6 +91,8 @@ def test_workplace(settings):
 
 @pytest.mark.ingestion
 def test_ingestion(settings):
+    """ Tests the successful ingestion and deletion of a sample document to the Workplace search
+    """
     configs, retry_count = settings
     enterprise_search_host = configs.get("enterprise_search.host_url")
     logger.info("Starting Workplace ingestion tests..")

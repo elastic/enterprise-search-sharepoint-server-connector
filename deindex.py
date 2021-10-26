@@ -150,8 +150,9 @@ def start():
                     )
         except FileNotFoundError as exception:
             logger.warn(
-                "[Fail] File doc_id.json is not present, none of the objects are indexed.")
-        
+                "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
+                % exception
+                )
         try:
             deindexing_interval = int(
                 data.get('deletion_interval', 60))

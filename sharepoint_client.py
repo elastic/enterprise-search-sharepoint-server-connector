@@ -28,9 +28,11 @@ class SharePoint:
         self.retry_count = int(self.configs.get("retry_count"))
 
     def get(self, rel_url, query):
-        """Invokes a GET call to the Sharepoint server
+        """ Invokes a GET call to the Sharepoint server
+            :param rel_url: relative url to the sharepoint farm
+            :param query: query for passing arguments to the url
             Returns:
-                    Response of the GET call
+                Response of the GET call
         """
         request_headers = {
             "accept": "application/json;odata=verbose",
@@ -45,7 +47,7 @@ class SharePoint:
                     auth=HttpNtlmAuth(domain + "\\" + username, password),
                     headers=request_headers
                 )
-                if response.status_code == (requests.codes.ok or requests.codes.not_found):
+                if response.status_code == requests.codes.ok or response.status_code == requests.codes.not_found:
                     return response
                 else:
                     print_and_log(

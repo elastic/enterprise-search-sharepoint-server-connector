@@ -29,9 +29,13 @@ ITEMS = "items"
 
 
 def check_response(response, error_message, exception_message, param_name):
-    """Checks the response received from sharepoint server
+    """ Checks the response received from sharepoint server
+        :param response: response from the sharepoint client
+        :param error_message: error message if not getting the response
+        :param exception message: exception message
+        :param param_name: parameter name whether it is SITES, LISTS OR ITEMS
         Returns:
-            response_data: response received from invoking  
+            response_data: response received from invoking
     """
     if not response:
         logger.error(error_message)
@@ -65,6 +69,26 @@ class FetchIndex:
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
 
+    def index_document(self, document, success_message, failure_message):
+        """ This method indexes the documents to the workplace.
+            :param document: document to be indexed
+            :param success_message: success message
+            :param failure_message: failure message while indexing the document
+        """
+        try:
+            self.ws_client.index_documents(
+                http_auth=self.ws_token,
+                content_source_id=self.ws_source,
+                documents=document
+            )
+            logger.info(success_message)
+        except Exception as exception:
+            logger.exception(
+                "%s Error: %s"
+                % (failure_message, exception)
+            )
+            self.is_error = True
+
     def get_schema_fields(self, document_name):
         """ returns the schema of all the include_fields or exclude_fields specified in the configuration file.
             :param document_name: document name from 'sites', 'lists' or 'items'
@@ -77,18 +101,20 @@ class FetchIndex:
             include_fields = fields.get("include_fields")
             exclude_fields = fields.get("exclude_fields")
             if include_fields:
-                adapter_schema = {key:val for key, val in adapter_schema.items() if val in include_fields}
+                adapter_schema = {key: val for key, val in adapter_schema.items() if val in include_fields}
             elif exclude_fields:
-                adapter_schema = {key:val for key, val in adapter_schema.items() if val not in exclude_fields}
+                adapter_schema = {key: val for key, val in adapter_schema.items() if val not in exclude_fields}
+            adapter_schema["id"] = "GUID" if document_name == ITEMS else "Id"
         return adapter_schema
-
 
     def index_sites(self, collection, ids, index):
         """This method fetches sites from a collection and invokes the
             index permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
+            :param collection: collection name
+            :param index: index, boolean value
             Returns:
-                document: response of sharepoint GET call, with fields specified in the schema 
+                document: response of sharepoint GET call, with fields specified in the schema
         """
         rel_url = urljoin(
             self.sharepoint_host, f"/sites/{collection}/_api/web/webs"
@@ -119,35 +145,28 @@ class FetchIndex:
         if index:
             for num in range(len(response_data)):
                 doc = {'type': SITE}
+                # need to convert date to iso else workplace search throws error on date format Invalid field value: Value '2021-09-29T08:13:00' cannot be parsed as a date (RFC 3339)"]}
+                response_data[num]['Created'] += 'Z'
                 for field, response_field in schema.items():
                     doc[field] = response_data[num].get(response_field, None)
-                # need to convert date to iso else workplace search throws error on date format Invalid field value: Value '2021-09-29T08:13:00' cannot be parsed as a date (RFC 3339)"]}
-                doc['created_at'] += 'Z'
-                if self.enable_permission == True:
+                if self.enable_permission is True:
                     doc["_allow_permissions"] = self.index_permissions(
-                        key=SITES, collection=collection, site=doc['relative_url'])
+                        key=SITES, collection=collection, site=response_data[num]['ServerRelativeUrl'])
                 document.append(doc)
-                ids["sites"].update({doc["id"]: doc["relative_url"]})
+                ids["sites"].update({doc["id"]: response_data[num]["ServerRelativeUrl"]})
 
-            try:
-                response = self.ws_client.index_documents(
-                    http_auth=self.ws_token,
-                    content_source_id=self.ws_source,
-                    documents=document
-                )
+            self.index_document(document,
+                                "Successfully indexed the sites to the workplace",
+                                "Error while indexing the sites to the workplace."
+                                )
 
-                logger.info("Successfully indexed the sites to the workplace")
-            except Exception as exception:
-                logger.exception(
-                    "Error while indexing the sites to the workplace. Error: %s"
-                    % (exception)
-                )
-                self.is_error = True
         return response_data
 
     def get_site_paths(self, collection, ids, response_data=None):
-        """Extracts the server relative paths of all the sites present in a 
+        """Extracts the server relative paths of all the sites present in a
             collection.
+            :param collection: collection name
+            :param response_data: response data after successfully indexed the documents
             Returns:
                 sites: list of site paths
         """
@@ -168,6 +187,9 @@ class FetchIndex:
         """This method fetches lists from all sites in a collection and invokes the
             index permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
+            :param sites: site lists
+            :param collection: collection name
+            :param index: index, boolean value
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
@@ -214,39 +236,33 @@ class FetchIndex:
                     for field, response_field in schema_list.items():
                         doc[field] = response_data[num].get(
                             response_field, None)
-                    if self.enable_permission == True:
+                    if self.enable_permission is True:
                         doc["_allow_permissions"] = self.index_permissions(
-                            key=LISTS, collection=collection, site=site, list_name=doc['title'], list_url=doc['relative_url'], itemid=None)
+                            key=LISTS, collection=collection, site=site, list_name=response_data[num]['Title'], list_url=response_data[num]['ParentWebUrl'], itemid=None)
                     doc["url"] = urljoin(base_list_url, re.sub(
-                        r'[^ \w+]', '', doc["title"]))
+                        r'[^ \w+]', '', response_data[num]["Title"]))
                     document.append(doc)
-                    ids["lists"][site].update({doc["id"]: doc["title"]})
+                    ids["lists"][site].update({doc["id"]: response_data[num]["Title"]})
                 logger.info(
                     "Indexing the list for site: %s to the Workplace" % (site)
                 )
-                try:
-                    response = self.ws_client.index_documents(
-                        http_auth=self.ws_token,
-                        content_source_id=self.ws_source,
-                        documents=document
-                    )
-                    logger.info(
-                        "Successfully indexed the list for site: %s to the workplace"
-                        % (site)
-                    )
-                except Exception as exception:
-                    logger.exception(
-                        "Error while indexing the list for site: %s to the workplace. Error: %s"
-                        % (site, exception)
-                    )
-                    self.is_error = True
-                    return []
+
+                self.index_document(document,
+                                    "Successfully indexed the list for site: %s to the workplace" % (
+                                        site),
+                                    "Error while indexing the list for site: %s to the workplace." % (
+                                        site)
+                                    )
+
             responses.append(response_data)
         return responses
 
     def get_lists_paths(self, collection, ids, sites, response_data=None):
         """Extracts the server relative paths and name of all the lists present in the
             sites of a collection
+            :param collection: collection name
+            :param sites: site list
+            :param response_data: response data
             Returns:
                 lists: list of dictionaries, each dictionary is a key-value pair of
                 list path and list name
@@ -274,6 +290,9 @@ class FetchIndex:
         """This method fetches items from all the lists in a collection and
             invokes theindex permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
+            :param lists: document lists
+            :param collection: collection name
+            :param index: index, boolean value
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
@@ -316,7 +335,7 @@ class FetchIndex:
 
             list_name = re.sub(r'[^ \w+]', '', value[1])
             base_item_url = urljoin(self.sharepoint_host,
-                f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
+                                    f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
             schema_item = self.get_schema_fields(ITEMS)
             document = []
 
@@ -347,7 +366,7 @@ class FetchIndex:
                     for field, response_field in schema_item.items():
                         doc[field] = response_data[num].get(
                             response_field, None)
-                    if self.enable_permission == True:
+                    if self.enable_permission is True:
                         doc["_allow_permissions"] = self.index_permissions(
                             key=ITEMS, collection=collection, list_name=value[1], list_url=value[0], itemid=str(response_data[num]["Id"]))
                     doc["url"] = base_item_url + str(response_data[num]["Id"])
@@ -358,25 +377,73 @@ class FetchIndex:
                     "Indexing the listitem for list: %s to the Workplace"
                     % (value[1])
                 )
-                try:
-                    response = self.ws_client.index_documents(
-                        http_auth=self.ws_token,
-                        content_source_id=self.ws_source,
-                        documents=document
-                    )
-                    logger.info(
-                        "Successfully indexed the listitem for list: %s to the workplace"
-                        % (value[1])
-                    )
-                except Exception as exception:
-                    logger.exception(
-                        "Error while indexing the listitem for list: %s to the workplace. Error: %s"
-                        % (value[1], exception)
-                    )
-                    self.is_error = True
-                    return []
+
+                self.index_document(document,
+                                    "Successfully indexed the listitem for list: %s to the workplace" % (
+                                        value[1]),
+                                    "Error while indexing the listitem for list: %s to the workplace." % (
+                                        value[1])
+                                    )
+
             responses.append(document)
         return responses
+
+    def get_roles(self, key, site, list_url, list_name, itemid):
+        """ Checks the permissions and returns the user roles.
+            :param key: key, a string value
+            :param site: site name to check the permission
+            :param list_url: list url to access the list
+            :param list_name: list name to check the permission
+            :param itemid: item id to check the permission
+            Returns:
+                roles: user roles
+        """
+        if key == SITES:
+            rel_url = urljoin(self.sharepoint_host, site)
+            roles = self.permissions.fetch_users(key, rel_url)
+
+        elif key == LISTS:
+            rel_url = urljoin(self.sharepoint_host, list_url)
+            roles = self.permissions.fetch_users(
+                key, rel_url, title=list_name
+            )
+
+        elif key == ITEMS:
+            rel_url = urljoin(self.sharepoint_host, list_url)
+            roles = self.permissions.fetch_users(
+                key, rel_url, title=list_name, id=itemid
+            )
+
+        return roles, rel_url
+
+    def workplace_add_permission(self, user_name, permission):
+        """This method when invoked would index the permission provided in the paramater
+            for the user in paramter user_name
+            :param user_name: a string value denoting the username of the user
+            :param permission: permission that needs to be provided to the user
+        """
+        try:
+            self.ws_client.add_user_permissions(
+                content_source_id=self.ws_source,
+                http_auth=self.ws_token,
+                user=user_name,
+                body={
+                    "permissions": [permission]
+                },
+            )
+            logger.info(
+                "Successfully indexed the permissions for user %s to the workplace" % (
+                    user_name
+                )
+            )
+        except Exception as exception:
+            logger.exception(
+                "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
+                    user_name, exception
+                )
+            )
+            self.is_error = True
+            return []
 
     def index_permissions(
         self,
@@ -391,48 +458,22 @@ class FetchIndex:
             If the object has unique permissions, the list of users having access to it
             is fetched using sharepoint api else the permission levels of the that object
             is taken same as the permission level of the site collection.
+            :param key: key, a string value
+            :param collection: collection name
+            :param site: site name to index the permission for the site
+            :param list_name: list name to index the permission for the list
+            :param list_url: url of the list
+            :param itemid: item id to index the permission for the item
             Returns:
                 groups: list of users having access to the given object
         """
-        unique = False
-        if key == SITES:
-            rel_url = urljoin(self.sharepoint_host, site)
-            unique = self.permissions.check_permissions(key, rel_url)
-            if unique:
-                roles = self.permissions.fetch_users(key, rel_url)
-        elif key == LISTS:
-            rel_url = urljoin(self.sharepoint_host, list_url)
-            unique = self.permissions.check_permissions(
-                key, rel_url, title=list_name
-            )
-            if unique:
-                roles = self.permissions.fetch_users(
-                    key, rel_url, title=list_name
-                )
-
-        elif key == ITEMS:
-
-            rel_url = urljoin(self.sharepoint_host, list_url)
-            unique = self.permissions.check_permissions(
-                key, rel_url, title=list_name, id=itemid
-            )
-            if unique:
-                roles = self.permissions.fetch_users(
-                    key, rel_url, title=list_name, id=itemid
-                )
-
-        if not unique:
-            host_url = urljoin(
-                self.sharepoint_host, f"/sites/{collection}/_api/"
-            )
-            roles = self.sharepoint_client.get(
-                host_url,
-                "web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            )
+        roles, rel_url = self.get_roles(key, site, list_url, list_name, itemid)
 
         groups = []
+
         roles = check_response(roles, "Cannot fetch the roles for the given object %s at url %s" % (
             key, rel_url), "Error while parsing response for fetch_users for %s at url %s." % (key, rel_url), "roles")
+
         rows = {}
         if (os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0):
             with open(self.mapping_sheet_path) as file:
@@ -440,40 +481,26 @@ class FetchIndex:
                 for row in csvreader:
                     rows[row[0]] = row[1]
         for role in roles:
-            groups.append(role["Member"]["LoginName"])
+            title = role["Member"]["Title"]
+            groups.append(title)
             users = role["Member"].get("Users")
             if users:
                 users = users.get("results")
                 for user in users:
                     user_name = rows.get(user['Title'], user['Title'])
-                    try:
-                        self.ws_client.add_user_permissions(
-                            content_source_id=self.ws_source,
-                            http_auth=self.ws_token,
-                            user=user_name,
-                            body={
-                                "permissions": [role["Member"]["LoginName"]]
-                            },
-                        )
-                        logger.info(
-                            "Successfully indexed the permissions for user %s to the workplace" % (
-                                user["Title"]
-                            )
-                        )
-                    except Exception as exception:
-                        logger.exception(
-                            "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
-                                user["Title"], exception
-                            )
-                        )
-                        self.is_error = True
-                        return []
+                    self.workplace_add_permission(user_name, title)
+            else:
+                user_name = rows.get(title, title)
+                self.workplace_add_permission(user_name, user_name)
         return groups
 
     def indexing(self, collection, current_time, ids):
-        """This method fetches all the objects from sharepoint server and 
+        """This method fetches all the objects from sharepoint server and
             ingests them into the workplace search
+            :param collection: collection name
+            :param current_time: current time
         """
+
         sites = []
         lists = {}
         logger.info(
@@ -513,7 +540,7 @@ class FetchIndex:
             "Successfuly fetched all the objects for site collection: %s"
             % (collection)
         )
-        
+
         logger.info(
             "Saving the checkpoint for the site collection: %s" % (collection)
         )
@@ -574,7 +601,7 @@ def start():
                 json.dump(ids_collection, f, indent=4)
             except ValueError as exception:
                 logger.warn(
-                    'Error while adding ids to json file. Error: %s'%(exception))
+                    'Error while adding ids to json file. Error: %s' % (exception))
         try:
             indexing_interval = int(data.get("indexing_interval", 60))
         except ValueError as exception:
