@@ -1,12 +1,12 @@
 #Configurations for the SharePoint 2016 Connector
 
 #SharePoint 2016 configuration settings
-#The client id generated while app registration on sharepoint server to access the contents
-sharepoint.client_id: dummy
-#The secret generated while app registration on sharepoint server
-sharepoint.client_secret: dummy
-#The authentication realm of a SharePoint farm
-sharepoint.realm: dummy
+#The domain name of the sharepoint server for NTLM authenticaion
+sharepoint.domain: ""
+#The username used to login to Sharepoint server
+sharepoint.username: ""
+#The password used to login to Sharepoint server
+sharepoint.password: ""
 #The address of the sharepoint farm. Example: http://sharepoint-host:14293/
 sharepoint.host_url: http://sharepoint-host:14682/
 #Specifies the site collections whose contents the user wants to fetch and index.
@@ -37,7 +37,11 @@ end_time : "2021-08-31T13:58:12Z"
 indexing_interval: 60
 #The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
 deletion_interval: 60
-#The level of the logs the user wants to use in the log files. The possible values include: DEBUG, INFO, WARN, ERROR. By default, the level is INFO
-log_level: INFO
+#The level of the logs the user wants to use in the log files. The possible values include: debug, info, warn, error. By default, the level is info
+log_level: info
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3
+#Number of worker processes to be used for the connector. The ideal value should be equal to the number of CPU cores in the machine
+worker_process: 4
+#the path of csv file containing mapping of sharepoint user ID to Workplace user ID
+sharepoint_workplace_user_mapping: "C:/Users/abc/folder_name/file_name.csv"

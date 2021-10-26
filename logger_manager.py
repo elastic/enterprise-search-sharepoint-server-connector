@@ -38,7 +38,6 @@ def setup_logging(log_name, log_level=logging.INFO):
         )
         handler.setFormatter(ecs_logging.StdlibFormatter())
         logger.addHandler(handler)
-
         if log_level is not None:
             handler.setLevel(log_level)
 

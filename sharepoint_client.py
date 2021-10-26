@@ -1,15 +1,10 @@
 import requests
 import time
-import json
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
 from urllib.parse import urljoin
 from configuration import Configuration
 from sharepoint_utils import print_and_log
-
-domain = '[REDACTED]'
-username = '[REDACTED]'
-password = '[REDACTED]'
 
 
 class SharePoint:
@@ -25,13 +20,18 @@ class SharePoint:
                 "[Fail] Terminating the connector as the configuration parameters are not valid"
             )
             exit(0)
-        self.configs = configuration.get_all_config()
+        self.configs = configuration.reload_configs()
         self.retry_count = int(self.configs.get("retry_count"))
+        self.domain = self.configs.get("sharepoint.domain")
+        self.username = self.configs.get("sharepoint.username")
+        self.password = self.configs.get("sharepoint.password")
 
     def get(self, rel_url, query):
-        """Invokes a GET call to the Sharepoint server
+        """ Invokes a GET call to the Sharepoint server
+            :param rel_url: relative url to the sharepoint farm
+            :param query: query for passing arguments to the url
             Returns:
-                    Response of the GET call
+                Response of the GET call
         """
         request_headers = {
             "accept": "application/json;odata=verbose",
@@ -43,10 +43,10 @@ class SharePoint:
             try:
                 response = requests.get(
                     url,
-                    auth=HttpNtlmAuth(domain + "\\" + username, password),
+                    auth=HttpNtlmAuth(self.domain + "\\" + self.username, self.password),
                     headers=request_headers
                 )
-                if response.status_code == (requests.codes.ok or requests.codes.not_found):
+                if response.status_code == requests.codes.ok or response.status_code == requests.codes.not_found:
                     return response
                 else:
                     print_and_log(
@@ -74,3 +74,17 @@ class SharePoint:
                 else:
                     return False
                 retry += 1
+
+    def get_query(self, start_time, end_time, param_name):
+        """ returns the query for each objects
+            :param start_time: start time of the interval for fetching the documents
+            :param end_time: end time of the interval for fetching the documents
+            Returns:
+                query: query for each object
+        """
+        query = ""
+        if param_name in ["sites", "lists"]:
+            query = f"?$filter=(LastItemModifiedDate ge datetime'{start_time}') and (LastItemModifiedDate le datetime'{end_time}')"
+        elif param_name == "items":
+            query = f"?$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"
+        return query
