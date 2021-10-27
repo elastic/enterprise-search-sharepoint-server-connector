@@ -10,7 +10,7 @@ class Permissions:
         self.sharepoint_client = sharepoint_client
         self.logger.info("Initilized Permissions class")
 
-    def fetch_users(self, key, rel_url, title=None, id=None):
+    def fetch_users(self, key, rel_url, title="", id=""):
         """ Invokes GET calls to fetch unique permissions assigned to an object
             :param key: object key
             :param rel_url: relative url to the sharepoint farm
