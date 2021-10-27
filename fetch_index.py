@@ -615,7 +615,7 @@ def start():
 
             # get the processors from the config file and if not exists, then directly fetch from os
             worker_process = data.get("worker_process")
-            if worker_process <= 0:
+            if worker_process is None or worker_process <= 0:
                 worker_process = os.cpu_count()
 
             start_time, end_time = check.get_checkpoint(
