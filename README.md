@@ -46,11 +46,13 @@ Following are the optional fields i.e. the connector uses the default values in 
 
 * **start_time**: The Zulu time after which all the objects that are modified or created are fetched from Sharepoint. By default, all the objects present in the last 180 days in the SharePoint are fetched (e.g. "2021-06-16T13:58:12Z")
 
-* **end_time**: The Zulu time before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched (e.g. "2021-10-24T06:52:22Z")
+* **end_time**: The Zulu time before which all the updated objects need to be fetched i.e. the connector won't fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched (e.g. "2021-10-24T06:52:22Z")
 
 * **indexing_interval**: The interval in minutes after which the connector looks for new/updated objects from SharePoint, (e.g. 180), The unit of the interval is minutes and by default, the interval is considered to be 60
 
 * **deletion_interval**: The interval in minutes after which the connector looks for the deleted objects from SharePoint, (e.g. 180), The unit of the interval is minutes and by default, the interval is considered to be 60
+
+* **full_sync_interval**: The interval after which the connector fetches all the objects from sharepoint server from a given start_time in the configuration file
 
 * **log_level**: The level of logging in the log files. The possible values include: debug, info, warn, error, (e.g. info). By default, the level is info
 

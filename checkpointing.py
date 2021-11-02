@@ -66,7 +66,7 @@ class Checkpoint:
         )
         return start_time, end_time
 
-    def set_checkpoint(self, collection, current_time):
+    def set_checkpoint(self, collection, current_time, index_type):
         """This method updates the existing checkpoint json file or creates
            a new checkpoint json file in case it is not present
            :param collection: collection name
@@ -88,11 +88,15 @@ class Checkpoint:
                     )
 
         else:
+            if index_type == "incremental":
+                checkpoint_time = self.data.get('end_time')
+            else:
+                checkpoint_time = current_time
             self.logger.info(
                 "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
-                % (self.data.get('end_time'), collection, CHECKPOINT_PATH)
+                % (checkpoint_time, collection, CHECKPOINT_PATH)
             )
-            checkpoint_list = {collection: self.data.get('end_time')}
+            checkpoint_list = {collection: checkpoint_time}
 
         with open(CHECKPOINT_PATH, "w") as checkpoint_store:
             try:

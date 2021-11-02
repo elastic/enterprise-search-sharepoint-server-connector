@@ -136,7 +136,6 @@ def start():
         print_and_log(
             logger, 'error', 'Terminating the de-indexing as the configuration parameters are not valid')
         exit(0)
-    deindexing_interval = 60
     data = config.reload_configs()
     while True:
         deindexer = Deindex(data)
@@ -166,12 +165,7 @@ def start():
                 "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
                 % exception
             )
-        try:
-            deindexing_interval = int(
-                data.get('deletion_interval', 60))
-        except Exception as exception:
-            logger.warn('Error while converting the parameter deindexing_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
-                deindexing_interval, exception))
+        deindexing_interval = data.get('deletion_interval')
         # TODO: need to use schedule instead of time.sleep
         logger.info('Sleeping..')
         time.sleep(deindexing_interval * 60)

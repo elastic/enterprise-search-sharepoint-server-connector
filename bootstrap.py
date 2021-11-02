@@ -53,7 +53,7 @@ def main():
                         {"field_name": 'body', "label": 'Content'},
                         {"field_name": 'created_at', "label": 'Created At'}
                     ],
-                    "color": "#f00f00"
+                    "color": "#0000000"
                 },
                 "is_searchable": True
             }

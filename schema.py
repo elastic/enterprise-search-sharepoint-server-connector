@@ -118,6 +118,12 @@ schema = {
         'default': 60,
         'min': 1
     },
+    'full_sync_interval': {
+        'required': False,
+        'type': 'integer',
+        'default': 2880,
+        'min': 60
+    },
     'log_level': {
         'required': False,
         'type': 'string',

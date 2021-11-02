@@ -46,7 +46,7 @@ class SharePoint:
                     auth=HttpNtlmAuth(self.domain + "\\" + self.username, self.password),
                     headers=request_headers
                 )
-                if response.status_code == requests.codes.ok or response.status_code == requests.codes.not_found:
+                if response.status_code in [requests.codes.ok, requests.codes.not_found, requests.codes.bad_request]:
                     return response
                 else:
                     print_and_log(
