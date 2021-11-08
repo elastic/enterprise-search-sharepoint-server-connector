@@ -82,11 +82,12 @@ class FetchIndex:
             :param document: document to be indexed
             :param success_message: success message
             :param failure_message: failure message while indexing the document
+            :param param_name: parameter name whether it is SITES, LISTS OR ITEMS
         """
         try:
             if document:
                 total_documents_indexed = 0
-                document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE )]
+                document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
                 for chunk in document_list:
                     response = self.ws_client.index_documents(
                         http_auth=self.ws_token,
@@ -617,6 +618,12 @@ def start(indexing_type):
                         "Error while parsing the json file of the ids store from path: %s. Error: %s"
                         % (IDS_PATH, exception)
                     )
+            
+            # delete all the permissions present in workplace search
+            if indexing_type == "full_sync":
+                sharepoint_client = SharePoint(logger)
+                permission = Permissions(logger, sharepoint_client)
+                permission.remove_all_permissions(data=data)
 
         storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
 
