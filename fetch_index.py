@@ -42,15 +42,13 @@ def check_response(response, error_message, exception_message, param_name):
             response_data: response received from invoking
     """
     if not response:
-        if param_name == "attachment":
-            logger.info(error_message)
-            return None
-        else:
-            logger.error(error_message)
-            return None if param_name == SITES else []
+        logger.error(error_message)
+        return None if param_name == SITES else []
+    elif param_name == "attachment" and not response.get("d", {}).get("results"):
+        logger.info(error_message)
+        return None
     try:
-        response_data = response.json()
-        response_data = response_data.get("d", {}).get("results")
+        response_data = response.get("d", {}).get("results")
         return response_data
     except ValueError as exception:
         logger.exception("%s Error: %s" % (exception_message, exception))
@@ -139,7 +137,7 @@ class FetchIndex:
         logger.info("Fetching the sites detail from url: %s" % (rel_url))
         query = self.sharepoint_client.get_query(
             self.start_time, self.end_time, SITES)
-        response = self.sharepoint_client.get(rel_url, query)
+        response = self.sharepoint_client.get(rel_url, query, SITES)
 
         response_data = check_response(
             response,
@@ -225,7 +223,7 @@ class FetchIndex:
             query = self.sharepoint_client.get_query(
                 self.start_time, self.end_time, LISTS)
             response = self.sharepoint_client.get(
-                rel_url, query)
+                rel_url, query, LISTS)
 
             response_data = check_response(
                 response,
@@ -332,7 +330,7 @@ class FetchIndex:
 
             query = self.sharepoint_client.get_query(
                 self.start_time, self.end_time, ITEMS)
-            response = self.sharepoint_client.get(rel_url, query)
+            response = self.sharepoint_client.get(rel_url, query, ITEMS)
 
             response_data = check_response(
                 response,
@@ -361,7 +359,8 @@ class FetchIndex:
                 rel_url = urljoin(
                     self.sharepoint_host, f'{value[0]}/_api/web/lists/getbytitle(\'{encode(value[1])}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
 
-                file_response = self.sharepoint_client.get(rel_url, query='?')
+                file_response = self.sharepoint_client.get(rel_url, query='', param_name="attachment")
+                file_response = file_response.json()
                 file_response_data = check_response(file_response, "No attachments were found at url %s in the interval: start time: %s and end time: %s" % (
                     rel_url, self.start_time, self.end_time), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
 
@@ -372,7 +371,7 @@ class FetchIndex:
                             'AttachmentFiles']['results'][0]['ServerRelativeUrl']
                         url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{file_relative_url}\')/$value"
                         response = self.sharepoint_client.get(
-                            urljoin(self.sharepoint_host, url_s), query='?')
+                            urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
                         if response.status_code == requests.codes.ok:
                             try:
                                 doc['body'] = extract(response.content)
@@ -486,6 +485,7 @@ class FetchIndex:
 
         groups = []
 
+        roles = roles.json()
         roles = check_response(roles, "Cannot fetch the roles for the given object %s at url %s" % (
             key, rel_url), "Error while parsing response for fetch_users for %s at url %s." % (key, rel_url), "roles")
 
@@ -618,7 +618,6 @@ def start(indexing_type):
                         "Error while parsing the json file of the ids store from path: %s. Error: %s"
                         % (IDS_PATH, exception)
                     )
-            
             # delete all the permissions present in workplace search
             if indexing_type == "full_sync":
                 sharepoint_client = SharePoint(logger)
@@ -643,7 +642,7 @@ def start(indexing_type):
                 start_time, end_time = check.get_checkpoint(
                     collection, current_time)
             else:
-                start_time = data.get("start_time")	
+                start_time = data.get("start_time")
                 end_time = current_time
 
             # partitioning the data collection timeframe in equal parts by worker processes

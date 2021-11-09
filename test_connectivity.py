@@ -35,7 +35,7 @@ def test_sharepoint(settings):
     sharepoint_client = SharePoint(logger)
     collection = configs.get("sharepoint.site_collections")[0]
     response = sharepoint_client.get(urljoin(configs.get(
-        "sharepoint.host_url"), f"/sites/{collection}/_api/web/webs"), query="?")
+        "sharepoint.host_url"), f"/sites/{collection}/_api/web/webs"), query="?", param_name="sites")
     if not response:
         assert False, "Error while connecting to the Sharepoint server at %s" % (
             configs.get("sharepoint.host_url"))

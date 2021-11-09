@@ -53,7 +53,7 @@ class Permissions:
                         http_auth=ws_token,
                         user=permission['user'],
                         body={
-                            "permissions": []
+                            "permissions": permission['permissions']
                         }
                     )
                 self.logger.info("Successfully removed the permissions from the workplace.")

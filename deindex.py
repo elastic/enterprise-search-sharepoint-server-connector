@@ -39,7 +39,7 @@ class Deindex:
                     for item_id in items:
                         url = f"{self.sharepoint_host}{site_url}/_api/web/lists/getbytitle(\'{encode(list_name)}\')/items"
                         resp = self.sharepoint_client.get(
-                            url, f"?$filter= GUID eq  \'{item_id}\'")
+                            url, f"?$filter= GUID eq  \'{item_id}\'", "deindex")
                         if resp:
                             response = resp.json()
                             result = response.get('d', {}).get('results')
@@ -83,7 +83,7 @@ class Deindex:
                 doc = []
                 for list_id, list_name in list_details.items():
                     url = f"{self.sharepoint_host}{site_url}/_api/web/lists/getbytitle(\'{encode(list_name)}\')"
-                    resp = self.sharepoint_client.get(url, '?')
+                    resp = self.sharepoint_client.get(url, '', "deindex")
                     if resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
                 self.ws_client.delete_documents(
@@ -111,7 +111,7 @@ class Deindex:
             doc = []
             for site_id, site_url in site_details.items():
                 url = f"{self.sharepoint_host}{site_url}/_api/web"
-                resp = self.sharepoint_client.get(url, '?')
+                resp = self.sharepoint_client.get(url, '', "deindex")
                 if resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
             self.ws_client.delete_documents(
