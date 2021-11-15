@@ -15,14 +15,7 @@ def settings():
     configuration = Configuration(
         file_name="sharepoint_connector_config.yml", logger=logger
     )
-    if not configuration.validate():
-        print_and_log(
-            logger,
-            "error",
-            "[Fail] Terminating the tests as the configuration parameters are not valid",
-        )
-        assert False, "Invalid configuration parameters in the config file"
-    configs = configuration.reload_configs()
+    configs = configuration.configurations
     return configs, configs.get("retry_count")
 
 

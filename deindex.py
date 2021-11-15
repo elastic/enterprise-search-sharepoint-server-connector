@@ -2,7 +2,7 @@ import time
 import json
 import requests
 import os
-from sharepoint_utils import print_and_log, encode
+from sharepoint_utils import encode
 from elastic_enterprise_search import WorkplaceSearch
 from sharepoint_client import SharePoint
 from configuration import Configuration
@@ -54,7 +54,8 @@ class Deindex:
                     if updated_items is None:
                         continue
                     for id in doc:
-                        updated_items.remove(id)
+                        if id in updated_items:
+                            updated_items.remove(id)
                     if updated_items == []:
                         delete_list.append(list_name)
                 for list_name in delete_list:
@@ -91,7 +92,8 @@ class Deindex:
                     content_source_id=self.ws_source,
                     document_ids=doc)
                 for id in doc:
-                    global_ids_lists[site_url].pop(id)
+                    if id in global_ids_lists[site_url]:
+                        global_ids_lists[site_url].pop(id)
                 if global_ids_lists[site_url] == {}:
                     delete.append(site_url)
             for site_url in delete:
@@ -131,12 +133,7 @@ def start():
     """
     logger.info('Starting the de-indexing..')
     config = Configuration("sharepoint_connector_config.yml", logger)
-
-    if not config.validate():
-        print_and_log(
-            logger, 'error', 'Terminating the de-indexing as the configuration parameters are not valid')
-        exit(0)
-    data = config.reload_configs()
+    data = config.configurations
     while True:
         deindexer = Deindex(data)
         try:

@@ -6,6 +6,14 @@ from sharepoint_utils import print_and_log
 
 
 class Configuration:
+
+    __instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not Configuration.__instance:
+            Configuration.__instance = object.__new__(cls)
+        return Configuration.__instance
+
     def __init__(self, file_name, logger=None):
         self.logger = logger
         self.file_name = file_name
@@ -28,6 +36,10 @@ class Configuration:
                     "Something went wrong while parsing yaml file %s. Error: %s"
                     % (file_name, exception),
                 )
+        self.configurations = self.validate()
+        # Converting datetime object to string
+        for date_config in ["start_time", "end_time"]:
+            self.configurations[date_config] = self.configurations[date_config].strftime('%Y-%m-%dT%H:%M:%SZ')
 
     def validate(self):
         """Validates each properties defined in the yaml configuration file
@@ -38,26 +50,6 @@ class Configuration:
         if validator.errors:
             print_and_log(self.logger, "error", "Error while validating the config. Errors: %s" % (
                 validator.errors))
-            return False
+            exit(0)
         self.logger.info("Successfully validated the config file")
         return validator.document
-
-    def reload_configs(self):
-        """Returns the configuration parameters
-        """
-        try:
-            with open(self.file_name) as stream:
-                self.configurations = yaml.safe_load(stream)
-        except YAMLError as exception:
-            print_and_log(
-                self.logger,
-                "exception",
-                "Error while reading the configurations from %s. Error: %s" % (
-                    self.file_name, exception
-                ),
-            )
-        self.configurations = self.validate()
-        # Converting datetime object to string
-        for date_config in ["start_time", "end_time"]:
-            self.configurations[date_config] = self.configurations[date_config].strftime('%Y-%m-%dT%H:%M:%SZ')
-        return self.configurations

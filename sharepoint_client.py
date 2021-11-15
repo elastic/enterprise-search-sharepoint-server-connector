@@ -12,14 +12,7 @@ class SharePoint:
         configuration = Configuration(
             file_name="sharepoint_connector_config.yml", logger=logger
         )
-        if not configuration.validate():
-            print_and_log(
-                self.logger,
-                "exception",
-                "[Fail] Terminating the connector as the configuration parameters are not valid"
-            )
-            exit(0)
-        self.configs = configuration.reload_configs()
+        self.configs = configuration.configurations
         self.retry_count = int(self.configs.get("retry_count"))
         self.domain = self.configs.get("sharepoint.domain")
         self.username = self.configs.get("sharepoint.username")
@@ -58,7 +51,7 @@ class SharePoint:
                         auth=HttpNtlmAuth(self.domain + "\\" + self.username, self.password),
                         headers=request_headers
                     )
-                    if response.status_code in [requests.codes.ok, requests.codes.not_found, requests.codes.bad_request]:
+                    if response.status_code == requests.codes.ok:
                         if param_name in ["sites", "lists"] and response:
                             response_data = response.json()
                             response_result = response_data.get("d", {}).get("results")
@@ -73,6 +66,15 @@ class SharePoint:
                             break
                         else:
                             return response
+                    elif response.status_code >= 400 and response.status_code < 500:
+                        if not (param_name == 'deindex' and response.status_code == 404):
+                            print_and_log(
+                                    self.logger,
+                                    "exception",
+                                    "Error: %s. Error while fetching from the sharepoint, url: %s."
+                                    % (response.reason, url)
+                                )
+                        return response
                     else:
                         print_and_log(
                             self.logger,

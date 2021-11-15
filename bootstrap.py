@@ -8,12 +8,7 @@ logger = log.setup_logging("sharepoint_connector_bootstrap")
 
 def main():
     config = Configuration("sharepoint_connector_config.yml", logger=logger)
-    if not config.validate():
-        print(
-            "[Fail] Terminating the connector as the configuration parameters are not valid"
-        )
-        exit(0)
-    data = config.reload_configs()
+    data = config.configurations
     parser = argparse.ArgumentParser(
         description='Create a custom content source.')
     parser.add_argument("--name", required=True, type=str,
@@ -53,7 +48,7 @@ def main():
                         {"field_name": 'body', "label": 'Content'},
                         {"field_name": 'created_at', "label": 'Created At'}
                     ],
-                    "color": "#0000000"
+                    "color": "#000000"
                 },
                 "is_searchable": True
             }
