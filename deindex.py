@@ -2,7 +2,6 @@ import time
 import json
 import requests
 import os
-from sharepoint_utils import print_and_log
 from elastic_enterprise_search import WorkplaceSearch
 from sharepoint_client import SharePoint
 from configuration import Configuration
@@ -119,12 +118,7 @@ def start():
     """
     logger.info('Starting the de-indexing..')
     config = Configuration("sharepoint_connector_config.yml", logger)
-
-    if not config.validate():
-        print_and_log(
-            logger, 'error', 'Terminating the de-indexing as the configuration parameters are not valid')
-        exit(0)
-    data = config.reload_configs()
+    data = config.configurations
     deindexing_interval = 60
     while True:
         deindexer = Deindex(data)

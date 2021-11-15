@@ -1,6 +1,5 @@
 import time
 import requests
-from sharepoint_utils import print_and_log
 from urllib.parse import urljoin
 from elastic_enterprise_search import WorkplaceSearch
 from checkpointing import Checkpoint
@@ -160,24 +159,6 @@ class FetchIndex:
                                 "Error while indexing the sites to the workplace."
                                 )
 
-        return response_data
-
-    def get_site_paths(self, collection, ids, response_data=None):
-        """Extracts the server relative paths of all the sites present in a
-            collection.
-            :param collection: collection name
-            :param response_data: response data after successfully indexed the documents
-            Returns:
-                sites: list of site paths
-        """
-        logger.info("Extracting sites name")
-        if not response_data:
-            logger.info(
-                "Site response is not present. Fetching the list for sites"
-            )
-            response_data = self.index_sites(
-                collection, ids, index=False) or []
-
         sites = []
         for result in response_data:
             sites.append(result.get("ServerRelativeUrl"))
@@ -255,32 +236,9 @@ class FetchIndex:
                                     )
 
             responses.append(response_data)
-        return responses
-
-    def get_lists_paths(self, collection, ids, sites, response_data=None):
-        """Extracts the server relative paths and name of all the lists present in the
-            sites of a collection
-            :param collection: collection name
-            :param sites: site list
-            :param response_data: response data
-            Returns:
-                lists: list of dictionaries, each dictionary is a key-value pair of
-                list path and list name
-        """
-        if not sites:
-            sites = self.get_site_paths(collection, ids)
-        logger.info('Extracting list name')
-        lists = {}
-        if not response_data:
-            logger.info(
-                "List response is not present. Fetching the list for sites"
-            )
-            response_data = (
-                self.index_lists(sites, collection, ids, index=False) or []
-            )
 
         lists = {}
-        for response in response_data:
+        for response in responses:
             for result in response:
                 lists[result.get("Id")] = [result.get(
                     "ParentWebUrl"), result.get("Title")]
@@ -416,34 +374,33 @@ class FetchIndex:
 
         return roles, rel_url
 
-    def workplace_add_permission(self, user_name, permission):
+    def workplace_add_permission(self, permissions):
         """This method when invoked would index the permission provided in the paramater
             for the user in paramter user_name
-            :param user_name: a string value denoting the username of the user
-            :param permission: permission that needs to be provided to the user
+            :param permissions: dictionary containing permissions of all the users
         """
-        try:
-            self.ws_client.add_user_permissions(
-                content_source_id=self.ws_source,
-                http_auth=self.ws_token,
-                user=user_name,
-                body={
-                    "permissions": [permission]
-                },
-            )
-            logger.info(
-                "Successfully indexed the permissions for user %s to the workplace" % (
-                    user_name
+        for user_name, permission_list in permissions.items():
+            try:
+                self.ws_client.add_user_permissions(
+                    content_source_id=self.ws_source,
+                    user=user_name,
+                    body={
+                        "permissions": permission_list
+                    },
                 )
-            )
-        except Exception as exception:
-            logger.exception(
-                "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
-                    user_name, exception
+                logger.info(
+                    "Successfully indexed the permissions for user %s to the workplace" % (
+                        user_name
+                    )
                 )
-            )
-            self.is_error = True
-            return []
+            except Exception as exception:
+                logger.exception(
+                    "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
+                        user_name, exception
+                    )
+                )
+                self.is_error = True
+                return []
 
     def index_permissions(
         self,
@@ -480,6 +437,7 @@ class FetchIndex:
                 csvreader = csv.reader(file)
                 for row in csvreader:
                     rows[row[0]] = row[1]
+        permissions = {}
         for role in roles:
             title = role["Member"]["Title"]
             groups.append(title)
@@ -488,10 +446,17 @@ class FetchIndex:
                 users = users.get("results")
                 for user in users:
                     user_name = rows.get(user['Title'], user['Title'])
-                    self.workplace_add_permission(user_name, title)
+                    if user_name not in permissions:
+                        permissions.update({user_name: [title]})
+                    else:
+                        permissions[user_name].append(title)
             else:
                 user_name = rows.get(title, title)
-                self.workplace_add_permission(user_name, user_name)
+                if user_name not in permissions:
+                    permissions.update({user_name: [user_name]})
+                else:
+                    permissions[user_name].append(user_name)
+        self.workplace_add_permission(permissions)
         return groups
 
     def indexing(self, collection, current_time, ids):
@@ -508,36 +473,16 @@ class FetchIndex:
             % (str(self.objects))
         )
 
-        for key in self.objects:
-            response = None
-            if key == SITES:
-                response = self.index_sites(collection, ids, index=True)
-                sites = self.get_site_paths(collection, ids, response)
+        sites = self.index_sites(collection, ids, index=(SITES in self.objects))
 
-            if key == LISTS and not self.is_error:
-                if not sites:
-                    sites = self.get_site_paths(
-                        collection, ids, response_data=None)
-                responses = self.index_lists(
-                    sites, collection, ids, index=True)
+        if not self.is_error:
+            lists = self.index_lists(sites, collection, ids, index=(LISTS in self.objects))
 
-                lists = self.get_lists_paths(
-                    collection=collection, ids=ids, sites=sites, response_data=responses
-                )
-            elif self.is_error:
-                self.is_error = False
-                continue
-
-            if key == ITEMS and not self.is_error:
-                if not lists:
-                    lists = self.get_lists_paths(collection, ids, sites)
-                self.index_items(lists, collection, ids, index=True)
-            elif self.is_error:
-                self.is_error = False
-                continue
+        if ITEMS in self.objects and not self.is_error:
+            self.index_items(lists, collection, ids, index=True)
 
         logger.info(
-            "Successfuly fetched all the objects for site collection: %s"
+            "Completed fetching all the objects for site collection: %s"
             % (collection)
         )
 
@@ -556,16 +501,8 @@ def start():
     logger.info("Starting the indexing..")
     config = Configuration("sharepoint_connector_config.yml", logger)
 
-    if not config.validate():
-        print_and_log(
-            logger,
-            "error",
-            "Terminating the indexing as the configuration parameters are not valid",
-        )
-        exit(0)
-
     indexing_interval = 60
-    data = config.reload_configs()
+    data = config.configurations
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
         ids_collection = {}
