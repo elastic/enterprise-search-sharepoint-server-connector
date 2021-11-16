@@ -25,18 +25,18 @@ This connector requires:
 
 ## Bootstrapping ##
 
-Before indexing can begin, you need a new content source to index against. You can either get it by creating a new custom api source from the admin UI of the Workplace Search Account or you can just bootstrap it using the bootstrap.py file. To do this, make sure you have specifed the 'enterprise_search.host_url' within your configuration.yaml file and then run the bootstrap command:
+Before indexing can begin, you need a new content source to index against. You can either get it by creating a new [custom API source](https://www.elastic.co/guide/en/workplace-search/current/workplace-search-custom-api-sources.html) from Workplace Search admin dashboard or you can just bootstrap it using the bootstrap.py file. To use bootstrap.py, make sure you have specified 'enterprise_search.host_url' and 'workplace_search.access_token' in the sharepoint_connector_config.yml file. Run the bootstrap command:
 ```bash
-python3 bootstrap.py --name <Name of Content Source> --user <Admin Username>
+python3 bootstrap.py --name <Name of the Content Source> --user <Admin Username>
 ```
-Here, the parameter 'name' is the required one and parmeter 'user' is optional.
-The connector will then ask you for the user's password if 'user' parameter was specified in the above command. If the parameter 'user' was not specified, the connector would use 'workplace_search.access_token' specified in the configuration file for bootstrapping the content source.
+Here, the parameter 'name' is _required_ while 'user' is _optional_.
+You will be prompted to share the user's password if 'user' parameter was specified above. If the parameter 'user' was not specified, the connector would use 'workplace_search.access_token' specified in the configuration file for bootstrapping the content source.
 
-Once the content source is created, the ID of the content source is printed on the terminal. You can now move onto modifying the configuration file.
+Once the content source is created, the content source ID will be printed on the terminal. You can now move on to modifying the configuration file.
 
 ## Configuration file ##
 
-Required fields in the configuration file are:
+Required fields in the configuration file:
 
 * sharepoint.client_id
 * sharepoint.client_secret
@@ -47,7 +47,17 @@ Required fields in the configuration file are:
 * enterprise_search.host_url
 * sharepoint.site_collections
 
-The remaining parameters have a default value pre-defined inside the code logic. You can either define them according to your requirements in the configuration file or let the connector handle them on its own. 
+The remaining parameters are optional and have a default value.
+
+## Indexing ##
+
+You are all set to begin synchronizing document to Workplace Search. Run the python file _fetch_index.py_. The file will run in intervals and ingest the data from SharePoint Server 2016.
+
+If the permission fetching is enabled in the configuration file, fetch_index also handles permission fetching from the SharePoint server and ingests the documents with document level permissions. This would replicate document permissions from SharePoint Server to Workplace Search.
+
+## De-Indexing ##
+
+When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the deindex.py file for deleting the records from Workplace Search.
 
 ## Testing ##
 
@@ -63,15 +73,3 @@ Use the following command:
 pytest -m <mode>
 ```
 If you do not provide a mode, the connector will run the test for all the modes 
-
-## Indexing ##
-
-Finally, you are all set to begin the indexing to the Workplace Search. Run the python file fetch_index.py. The file will run in intervals and ingest the data from Sharepoint.
-
-If the permission fetching is enabled in the configuration file, fetch_index also handles permission fetching from the Sharepoint server and ingests the documents with document level permissions. This would prevent the users of Workplace Search, who are not having necessary permissions in the Sharepoint server, from accessing the same documents in the Workplace Search.
-
-Once the indexing for an interval is successfully completed, the current execution time is stored in the checkpoint.json file which will be used in the next interval or next invocation of the connector. 
-
-## De-Indexing ##
-
-When items are deleted from Sharepoint, a separate process is required to update Workplace Search accordingly. Run the deindex.py file for deleting the records from the Workplace Search. 
