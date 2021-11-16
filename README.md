@@ -1,6 +1,6 @@
-# Workplace Search Sharepoint 2016 Connector #
+# Workplace Search | Sharepoint Server 2016 Connector #
 
-This connector making the following data available for search:
+This connector synchronizes and enables searching over following items:
 
 * Site collections
 * Sites in a collection
@@ -8,7 +8,7 @@ This connector making the following data available for search:
 * Items
 * Attachments
 
-Some remaining objects to be covered in the upcoming versions:
+Support for following items expected in the upcoming versions:
 
 * Sub-sites
 * Drives
@@ -21,7 +21,7 @@ This connector requires:
 
 * Python >= 3.6
 * Workplace Search >= 7.13.0 and a Platinum+ license.
-* Sharepoint server 2016
+* SharePoint Server 2016
 
 ## Bootstrapping ##
 
