@@ -2,6 +2,7 @@
 import logging
 import logging.handlers
 import os
+import ecs_logging
 
 
 def setup_logging(log_name, log_level=logging.INFO):
@@ -28,20 +29,16 @@ def setup_logging(log_name, log_level=logging.INFO):
     logger.setLevel(log_level)
 
     handler_exists = any(
-        [True for h in logger.handlers if h.baseFilename == log_file]
+        [h.baseFilename == log_file for h in logger.handlers]
     )
 
     if not handler_exists:
-        file_handler = logging.handlers.RotatingFileHandler(
+        handler = logging.handlers.RotatingFileHandler(
             log_file, mode="a", maxBytes=10485760, backupCount=10
         )
-        # Format logs
-        fmt_str = "%(asctime)s %(levelname)s p%(process)s %(thread)d [%(filename)s] [%(funcName)s:%(lineno)d] - %(message)s"
-        formatter = logging.Formatter(fmt_str)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-
+        handler.setFormatter(ecs_logging.StdlibFormatter())
+        logger.addHandler(handler)
         if log_level is not None:
-            file_handler.setLevel(log_level)
+            handler.setLevel(log_level)
 
     return logger

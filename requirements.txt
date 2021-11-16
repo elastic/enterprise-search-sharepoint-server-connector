@@ -2,3 +2,6 @@ requests_ntlm
 elastic_enterprise_search
 pyyaml
 tika
+ecs_logging
+cerberus
+pytest

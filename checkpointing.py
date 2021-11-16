@@ -1,4 +1,3 @@
-from datetime import datetime
 import os
 import json
 
@@ -10,7 +9,13 @@ class Checkpoint:
         self.logger = logger
         self.data = data
 
-    def get_checkpoint(self, collection):
+    def get_checkpoint(self, collection, current_time):
+        """This method fetches the checkpoint from the checkpoint file in
+           the local storage. If the file does not exist, it takes the
+           checkpoint details from the configuration file.
+           :param collection: collection name
+           :param current_time: current time
+        """
         self.logger.info(
             "Fetching the checkpoint details from the checkpoint file: %s"
             % CHECKPOINT_PATH
@@ -23,7 +28,17 @@ class Checkpoint:
             with open(CHECKPOINT_PATH) as checkpoint_store:
                 try:
                     checkpoint_list = json.load(checkpoint_store)
-                    start_time = checkpoint_list.get(collection)
+
+                    if not checkpoint_list.get(collection):
+                        self.logger.info(
+                            "The checkpoint file is present but it does not contain the start_time for the collection %s, hence considering the start_time and end_time from the configuration file instead of the last successful fetch time"
+                            % (collection)
+                        )
+                        start_time = self.data.get("start_time")
+                        end_time = self.data.get("end_time")
+                    else:
+                        start_time = checkpoint_list.get(collection)
+                        end_time = current_time
                 except ValueError as exception:
                     self.logger.exception(
                         "Error while parsing the json file of the checkpoint store from path: %s. Error: %s"
@@ -33,13 +48,7 @@ class Checkpoint:
                         "Considering the start_time and end_time from the configuration file"
                     )
                     start_time = self.data.get("start_time")
-
-                if not checkpoint_list.get(collection):
-                    self.logger.info(
-                        "The checkpoint file is present but it does not contain the start_time for the collection %s, hence considering the start_time and end_time from the configuration file instead of the last successful fetch time"
-                        % (collection)
-                    )
-                    start_time = self.data.get("start_time")
+                    end_time = self.data.get("end_time")
 
         else:
             self.logger.info(
@@ -47,32 +56,27 @@ class Checkpoint:
                 % CHECKPOINT_PATH
             )
             start_time = self.data.get("start_time")
+            end_time = self.data.get("end_time")
 
-        end_time = (datetime.now()).strftime("%Y-%m-%dT%H:%M:%S")
         self.logger.info(
             "Contents of the start_time: %s and end_time: %s for collection %s",
             start_time,
             end_time,
             collection
         )
-
-        if start_time and not end_time:
-            query = f"?$filter=Created ge datetime'{start_time}'"
-        elif not start_time and end_time:
-            query = f"?$filter=Created le datetime'{end_time}'"
-        elif start_time and end_time:
-            query = f"?$filter= (Created ge datetime'{start_time}') and (Created le datetime'{end_time}')"
-        else:
-            query = "?"
-
-        return query
+        return start_time, end_time
 
     def set_checkpoint(self, collection, current_time):
-        self.logger.info(
-            "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
-            % (current_time, collection, CHECKPOINT_PATH)
-        )
+        """This method updates the existing checkpoint json file or creates
+           a new checkpoint json file in case it is not present
+           :param collection: collection name
+           :param current_time: current time
+        """
         if (os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0):
+            self.logger.info(
+                "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
+                % (current_time, collection, CHECKPOINT_PATH)
+            )
             with open(CHECKPOINT_PATH) as checkpoint_store:
                 try:
                     checkpoint_list = json.load(checkpoint_store)
@@ -82,10 +86,14 @@ class Checkpoint:
                         "Error while parsing the json file of the checkpoint store from path: %s. Error: %s"
                         % (CHECKPOINT_PATH, exception)
                     )
-            
+
         else:
-            checkpoint_list = {collection: current_time}
-        
+            self.logger.info(
+                "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
+                % (self.data.get('end_time'), collection, CHECKPOINT_PATH)
+            )
+            checkpoint_list = {collection: self.data.get('end_time')}
+
         with open(CHECKPOINT_PATH, "w") as checkpoint_store:
             try:
                 json.dump(checkpoint_list, checkpoint_store, indent=4)
