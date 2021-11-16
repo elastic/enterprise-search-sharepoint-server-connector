@@ -28,7 +28,7 @@ class Permissions:
         }
         if not rel_url.endswith("/"):
             rel_url = rel_url + "/"
-        return self.sharepoint_client.get(rel_url, maps[key])
+        return self.sharepoint_client.get(rel_url, maps[key], "permission_users")
 
     def remove_all_permissions(self, data):
         """ Removes all the permissions present in the workplace
@@ -67,4 +67,4 @@ class Permissions:
         """
         self.logger.info("Fetching the group roles for userid: %s" % (userid))
         self.sharepoint_client.get(
-            rel_url, f"_api/web/GetUserById({userid})/groups")
+            rel_url, f"_api/web/GetUserById({userid})/groups", "permission_groups")
