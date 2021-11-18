@@ -75,11 +75,10 @@ class FetchIndex:
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
 
-    def index_document(self, document, success_message, failure_message, param_name):
+    def index_document(self, document, parent_object, param_name):
         """ This method indexes the documents to the workplace.
             :param document: document to be indexed
-            :param success_message: success message
-            :param failure_message: failure message while indexing the document
+            :param parent_object: parent of the objects to be indexed
             :param param_name: parameter name whether it is SITES, LISTS OR ITEMS
         """
         try:
@@ -95,13 +94,12 @@ class FetchIndex:
                     for each in response['results']:
                         if not each['errors']:
                             total_documents_indexed += 1
-            logger.info(success_message)
-            logger.info("Total %s indexed to the workplace: %s." % (param_name, total_documents_indexed))
+            logger.info("Successfully indexed %s %s for %s to the workplace" % (
+                total_documents_indexed, param_name, parent_object))
         except Exception as exception:
-            logger.exception(
-                "%s Error: %s"
-                % (failure_message, exception)
-            )
+            logger.exception("Error while indexing the %s for %s. Error: %s"
+                             % (param_name, parent_object, exception)
+                             )
             self.is_error = True
 
     def get_schema_fields(self, document_name):
@@ -170,11 +168,7 @@ class FetchIndex:
                 document.append(doc)
                 ids["sites"].update({doc["id"]: response_data[num]["ServerRelativeUrl"]})
 
-            self.index_document(document,
-                                "Successfully indexed the sites to the workplace",
-                                "Error while indexing the sites to the workplace.",
-                                SITES
-                                )
+            self.index_document(document, collection, SITES)
         sites = []
         for result in response_data:
             sites.append(result.get("ServerRelativeUrl"))
@@ -243,13 +237,7 @@ class FetchIndex:
                     "Indexing the list for site: %s to the Workplace" % (site)
                 )
 
-                self.index_document(document,
-                                    "Successfully indexed the list for site: %s to the workplace." % (
-                                        site),
-                                    "Error while indexing the list for site: %s to the workplace." % (
-                                        site),
-                                    LISTS
-                                    )
+                self.index_document(document, site, LISTS)
 
             responses.append(response_data)
         lists = {}
@@ -351,13 +339,7 @@ class FetchIndex:
                     % (value[1])
                 )
 
-                self.index_document(document,
-                                    "Successfully indexed the listitem for list: %s to the workplace" % (
-                                        value[1]),
-                                    "Error while indexing the listitem for list: %s to the workplace." % (
-                                        value[1]),
-                                    ITEMS
-                                    )
+                self.index_document(document, value[1], ITEMS)
 
             responses.append(document)
         return responses
