@@ -66,5 +66,6 @@ class Permissions:
             :param userid: user id for fetching the roles
         """
         self.logger.info("Fetching the group roles for userid: %s" % (userid))
-        self.sharepoint_client.get(
+        response = self.sharepoint_client.get(
             rel_url, f"_api/web/GetUserById({userid})/groups", "permission_groups")
+        return response

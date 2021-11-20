@@ -13,7 +13,6 @@ from usergroup_permissions import Permissions
 from datetime import datetime
 import os
 import json
-import csv
 from tika.tika import TikaException
 from sharepoint_utils import extract
 import re
@@ -305,7 +304,8 @@ class FetchIndex:
                 rel_url = urljoin(
                     self.sharepoint_host, f'{value[0]}/_api/web/lists/getbytitle(\'{encode(value[1])}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
 
-                file_response = self.sharepoint_client.get(rel_url, query='', param_name="attachment")
+                new_query = "&" + query.split("?")[1]
+                file_response = self.sharepoint_client.get(rel_url, query=new_query, param_name="attachment")
                 file_response = file_response.json()
                 file_response_data = check_response(file_response, "No attachments were found at url %s in the interval: start time: %s and end time: %s" % (
                     rel_url, self.start_time, self.end_time), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
@@ -313,17 +313,20 @@ class FetchIndex:
                 for num in range(len(response_data)):
                     doc = {'type': ITEM}
                     if response_data[num].get('Attachments'):
-                        file_relative_url = file_response_data[num][
-                            'AttachmentFiles']['results'][0]['ServerRelativeUrl']
-                        url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{file_relative_url}\')/$value"
-                        response = self.sharepoint_client.get(
-                            urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
-                        if response.status_code == requests.codes.ok:
-                            try:
-                                doc['body'] = extract(response.content)
-                            except TikaException as exception:
-                                logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
-                                doc['body'] = {}
+                        for data in file_response_data:
+                            if response_data[num].get('Title') == data['Title']:
+                                file_relative_url = data[
+                                    'AttachmentFiles']['results'][0]['ServerRelativeUrl']
+                                url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{file_relative_url}\')/$value"
+                                response = self.sharepoint_client.get(
+                                    urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
+                                if response.status_code == requests.codes.ok:
+                                    try:
+                                        doc['body'] = extract(response.content)
+                                    except TikaException as exception:
+                                        logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
+                                        doc['body'] = {}
+                                break
                     for field, response_field in schema_item.items():
                         doc[field] = response_data[num].get(
                             response_field, None)
@@ -372,34 +375,6 @@ class FetchIndex:
 
         return roles, rel_url
 
-    def workplace_add_permission(self, permissions):
-        """This method when invoked would index the permission provided in the paramater
-            for the user in paramter user_name
-            :param permissions: dictionary containing permissions of all the users
-        """
-        for user_name, permission_list in permissions.items():
-            try:
-                self.ws_client.add_user_permissions(
-                    content_source_id=self.ws_source,
-                    user=user_name,
-                    body={
-                        "permissions": permission_list
-                    },
-                )
-                logger.info(
-                    "Successfully indexed the permissions for user %s to the workplace" % (
-                        user_name
-                    )
-                )
-            except Exception as exception:
-                logger.exception(
-                    "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
-                        user_name, exception
-                    )
-                )
-                self.is_error = True
-                return []
-
     def index_permissions(
         self,
         key,
@@ -428,32 +403,9 @@ class FetchIndex:
         roles = check_response(roles, "Cannot fetch the roles for the given object %s at url %s" % (
             key, rel_url), "Error while parsing response for fetch_users for %s at url %s." % (key, rel_url), "roles")
 
-        rows = {}
-        if (os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0):
-            with open(self.mapping_sheet_path) as file:
-                csvreader = csv.reader(file)
-                for row in csvreader:
-                    rows[row[0]] = row[1]
-        permissions = {}
         for role in roles:
             title = role["Member"]["Title"]
             groups.append(title)
-            users = role["Member"].get("Users")
-            if users:
-                users = users.get("results")
-                for user in users:
-                    user_name = rows.get(user['Title'], user['Title'])
-                    if user_name not in permissions:
-                        permissions.update({user_name: [title]})
-                    else:
-                        permissions[user_name].append(title)
-            else:
-                user_name = rows.get(title, title)
-                if user_name not in permissions:
-                    permissions.update({user_name: [user_name]})
-                else:
-                    permissions[user_name].append(user_name)
-        self.workplace_add_permission(permissions)
         return groups
 
     def indexing(self, collection, ids, storage, is_error_shared):
@@ -535,11 +487,6 @@ def start(indexing_type):
                         "Error while parsing the json file of the ids store from path: %s. Error: %s"
                         % (IDS_PATH, exception)
                     )
-            # delete all the permissions present in workplace search
-            if indexing_type == "full_sync":
-                sharepoint_client = SharePoint(logger)
-                permission = Permissions(logger, sharepoint_client)
-                permission.remove_all_permissions(data=data)
 
         storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
 

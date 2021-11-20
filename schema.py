@@ -124,6 +124,12 @@ schema = {
         'default': 2880,
         'min': 60
     },
+    'sync_permission_interval': {
+        'required': False,
+        'type': 'integer',
+        'default': 60,
+        'min': 1
+    },
     'log_level': {
         'required': False,
         'type': 'string',
