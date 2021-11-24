@@ -1,5 +1,8 @@
+import multiprocessing
 import time
+import copy
 import requests
+from sharepoint_utils import encode
 from urllib.parse import urljoin
 from elastic_enterprise_search import WorkplaceSearch
 from checkpointing import Checkpoint
@@ -25,6 +28,8 @@ ITEM = "item"
 SITES = "sites"
 LISTS = "lists"
 ITEMS = "items"
+DOCUMENT_SIZE = 100
+DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
 def check_response(response, error_message, exception_message, param_name):
@@ -39,9 +44,11 @@ def check_response(response, error_message, exception_message, param_name):
     if not response:
         logger.error(error_message)
         return None if param_name == SITES else []
+    elif param_name == "attachment" and not response.get("d", {}).get("results"):
+        logger.info(error_message)
+        return None
     try:
-        response_data = response.json()
-        response_data = response_data.get("d", {}).get("results")
+        response_data = response.get("d", {}).get("results")
         return response_data
     except ValueError as exception:
         logger.exception("%s Error: %s" % (exception_message, exception))
@@ -68,24 +75,31 @@ class FetchIndex:
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
 
-    def index_document(self, document, success_message, failure_message):
+    def index_document(self, document, parent_object, param_name):
         """ This method indexes the documents to the workplace.
             :param document: document to be indexed
-            :param success_message: success message
-            :param failure_message: failure message while indexing the document
+            :param parent_object: parent of the objects to be indexed
+            :param param_name: parameter name whether it is SITES, LISTS OR ITEMS
         """
         try:
-            self.ws_client.index_documents(
-                http_auth=self.ws_token,
-                content_source_id=self.ws_source,
-                documents=document
-            )
-            logger.info(success_message)
+            if document:
+                total_documents_indexed = 0
+                document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
+                for chunk in document_list:
+                    response = self.ws_client.index_documents(
+                        http_auth=self.ws_token,
+                        content_source_id=self.ws_source,
+                        documents=chunk
+                    )
+                    for each in response['results']:
+                        if not each['errors']:
+                            total_documents_indexed += 1
+            logger.info("Successfully indexed %s %s for %s to the workplace" % (
+                total_documents_indexed, param_name, parent_object))
         except Exception as exception:
-            logger.exception(
-                "%s Error: %s"
-                % (failure_message, exception)
-            )
+            logger.exception("Error while indexing the %s for %s. Error: %s"
+                             % (param_name, parent_object, exception)
+                             )
             self.is_error = True
 
     def get_schema_fields(self, document_name):
@@ -121,7 +135,7 @@ class FetchIndex:
         logger.info("Fetching the sites detail from url: %s" % (rel_url))
         query = self.sharepoint_client.get_query(
             self.start_time, self.end_time, SITES)
-        response = self.sharepoint_client.get(rel_url, query)
+        response = self.sharepoint_client.get(rel_url, query, SITES)
 
         response_data = check_response(
             response,
@@ -131,10 +145,10 @@ class FetchIndex:
             SITES,
         )
         if not response_data:
-            logger.info("No sites were created for this interval")
+            logger.info("No sites were created for this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
             return []
         logger.info(
-            "Successfuly fetched and parsed the sites response from SharePoint"
+            "Successfuly fetched and parsed %s sites response from SharePoint" % len(response_data)
         )
         logger.info("Indexing the sites to the Workplace")
 
@@ -150,26 +164,21 @@ class FetchIndex:
                     doc[field] = response_data[num].get(response_field, None)
                 if self.enable_permission is True:
                     doc["_allow_permissions"] = self.index_permissions(
-                        key=SITES, collection=collection, site=response_data[num]['ServerRelativeUrl'])
+                        key=SITES, site=response_data[num]['ServerRelativeUrl'])
                 document.append(doc)
                 ids["sites"].update({doc["id"]: response_data[num]["ServerRelativeUrl"]})
 
-            self.index_document(document,
-                                "Successfully indexed the sites to the workplace",
-                                "Error while indexing the sites to the workplace."
-                                )
-
+            self.index_document(document, collection, SITES)
         sites = []
         for result in response_data:
             sites.append(result.get("ServerRelativeUrl"))
         return sites
 
-    def index_lists(self, sites, collection, ids, index):
+    def index_lists(self, sites, ids, index):
         """This method fetches lists from all sites in a collection and invokes the
             index permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
             :param sites: site lists
-            :param collection: collection name
             :param index: index, boolean value
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
@@ -178,7 +187,7 @@ class FetchIndex:
         responses = []
         document = []
         if not sites:
-            logger.info("No list was created in this interval")
+            logger.info("No list was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
             return []
         for site in sites:
             rel_url = urljoin(self.sharepoint_host, f"{site}/_api/web/lists")
@@ -190,7 +199,7 @@ class FetchIndex:
             query = self.sharepoint_client.get_query(
                 self.start_time, self.end_time, LISTS)
             response = self.sharepoint_client.get(
-                rel_url, query + " and BaseType ne 1 and Hidden eq false and ContentTypesEnabled eq false")
+                rel_url, query, LISTS)
 
             response_data = check_response(
                 response,
@@ -200,11 +209,11 @@ class FetchIndex:
                 LISTS,
             )
             if not response_data:
-                logger.info("No list was created in this interval")
-                return []
+                logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
+                continue
             logger.info(
-                "Successfuly fetched and parsed the list response for site: %s from SharePoint"
-                % (site)
+                "Successfuly fetched and parsed %s list response for site: %s from SharePoint"
+                % (len(response_data), site)
             )
 
             base_list_url = urljoin(self.sharepoint_host, f"{site}/Lists/")
@@ -219,7 +228,7 @@ class FetchIndex:
                             response_field, None)
                     if self.enable_permission is True:
                         doc["_allow_permissions"] = self.index_permissions(
-                            key=LISTS, collection=collection, site=site, list_name=response_data[num]['Title'], list_url=response_data[num]['ParentWebUrl'], itemid=None)
+                            key=LISTS, site=site, list_name=response_data[num]['Title'], list_url=response_data[num]['ParentWebUrl'], itemid=None)
                     doc["url"] = urljoin(base_list_url, re.sub(
                         r'[^ \w+]', '', response_data[num]["Title"]))
                     document.append(doc)
@@ -228,15 +237,9 @@ class FetchIndex:
                     "Indexing the list for site: %s to the Workplace" % (site)
                 )
 
-                self.index_document(document,
-                                    "Successfully indexed the list for site: %s to the workplace" % (
-                                        site),
-                                    "Error while indexing the list for site: %s to the workplace." % (
-                                        site)
-                                    )
+                self.index_document(document, site, LISTS)
 
             responses.append(response_data)
-
         lists = {}
         for response in responses:
             for result in response:
@@ -244,12 +247,11 @@ class FetchIndex:
                     "ParentWebUrl"), result.get("Title")]
         return lists
 
-    def index_items(self, lists, collection, ids, index):
+    def index_items(self, lists, ids, index):
         """This method fetches items from all the lists in a collection and
             invokes theindex permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
             :param lists: document lists
-            :param collection: collection name
             :param index: index, boolean value
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
@@ -258,14 +260,14 @@ class FetchIndex:
         #  here value is a list of url and title
         logger.info("Fetching all the items for the lists")
         if not lists:
-            logger.info("No item was created in this interval")
+            logger.info("No item was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
             return []
         for value in lists.values():
             ids["list_items"].update({value[0]: {}})
         for list_content, value in lists.items():
             rel_url = urljoin(
                 self.sharepoint_host,
-                f"{value[0]}/_api/web/lists/getbytitle('{value[1]}')/items",
+                f"{value[0]}/_api/web/lists/getbytitle('{encode(value[1])}')/items",
             )
             logger.info(
                 "Fetching the items for list: %s from url: %s"
@@ -274,7 +276,7 @@ class FetchIndex:
 
             query = self.sharepoint_client.get_query(
                 self.start_time, self.end_time, ITEMS)
-            response = self.sharepoint_client.get(rel_url, query)
+            response = self.sharepoint_client.get(rel_url, query, ITEMS)
 
             response_data = check_response(
                 response,
@@ -284,11 +286,11 @@ class FetchIndex:
                 ITEMS,
             )
             if not response_data:
-                logger.info("No item was created in this interval")
-                return []
+                logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                continue
             logger.info(
-                "Successfuly fetched and parsed the listitem response for list: %s from SharePoint"
-                % (value[1])
+                "Successfuly fetched and parsed %s listitem response for list: %s from SharePoint"
+                % (len(response_data), value[1])
             )
 
             list_name = re.sub(r'[^ \w+]', '', value[1])
@@ -301,11 +303,12 @@ class FetchIndex:
 
                 ids["list_items"][value[0]].update({value[1]: []})
                 rel_url = urljoin(
-                    self.sharepoint_host, f'{value[0]}/_api/web/lists/getbytitle(\'{value[1]}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
+                    self.sharepoint_host, f'{value[0]}/_api/web/lists/getbytitle(\'{encode(value[1])}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
 
-                file_response = self.sharepoint_client.get(rel_url, query='?')
-                file_response_data = check_response(file_response, "Cannot fetch the file at url %s" % (
-                    rel_url), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
+                file_response = self.sharepoint_client.get(rel_url, query='', param_name="attachment")
+                file_response = file_response.json()
+                file_response_data = check_response(file_response, "No attachments were found at url %s in the interval: start time: %s and end time: %s" % (
+                    rel_url, self.start_time, self.end_time), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
 
                 for num in range(len(response_data)):
                     doc = {'type': ITEM}
@@ -314,7 +317,7 @@ class FetchIndex:
                             'AttachmentFiles']['results'][0]['ServerRelativeUrl']
                         url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{file_relative_url}\')/$value"
                         response = self.sharepoint_client.get(
-                            urljoin(self.sharepoint_host, url_s), query='?')
+                            urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
                         if response.status_code == requests.codes.ok:
                             try:
                                 doc['body'] = extract(response.content)
@@ -326,7 +329,7 @@ class FetchIndex:
                             response_field, None)
                     if self.enable_permission is True:
                         doc["_allow_permissions"] = self.index_permissions(
-                            key=ITEMS, collection=collection, list_name=value[1], list_url=value[0], itemid=str(response_data[num]["Id"]))
+                            key=ITEMS, list_name=value[1], list_url=value[0], itemid=str(response_data[num]["Id"]))
                     doc["url"] = base_item_url + str(response_data[num]["Id"])
                     document.append(doc)
                     ids["list_items"][value[0]][value[1]].append(
@@ -336,12 +339,7 @@ class FetchIndex:
                     % (value[1])
                 )
 
-                self.index_document(document,
-                                    "Successfully indexed the listitem for list: %s to the workplace" % (
-                                        value[1]),
-                                    "Error while indexing the listitem for list: %s to the workplace." % (
-                                        value[1])
-                                    )
+                self.index_document(document, value[1], ITEMS)
 
             responses.append(document)
         return responses
@@ -405,7 +403,6 @@ class FetchIndex:
     def index_permissions(
         self,
         key,
-        collection,
         site=None,
         list_name=None,
         list_url=None,
@@ -416,7 +413,6 @@ class FetchIndex:
             is fetched using sharepoint api else the permission levels of the that object
             is taken same as the permission level of the site collection.
             :param key: key, a string value
-            :param collection: collection name
             :param site: site name to index the permission for the site
             :param list_name: list name to index the permission for the list
             :param list_url: url of the list
@@ -428,6 +424,7 @@ class FetchIndex:
 
         groups = []
 
+        roles = roles.json()
         roles = check_response(roles, "Cannot fetch the roles for the given object %s at url %s" % (
             key, rel_url), "Error while parsing response for fetch_users for %s at url %s." % (key, rel_url), "roles")
 
@@ -459,11 +456,13 @@ class FetchIndex:
         self.workplace_add_permission(permissions)
         return groups
 
-    def indexing(self, collection, current_time, ids):
+    def indexing(self, collection, ids, storage, is_error_shared):
         """This method fetches all the objects from sharepoint server and
             ingests them into the workplace search
             :param collection: collection name
-            :param current_time: current time
+            :param ids: id collection of the all the objects
+            :param storage: temporary storage for storing all the documents
+            :is_error_shared: list of all the is_error values
         """
 
         sites = []
@@ -472,14 +471,13 @@ class FetchIndex:
             "Starting to index all the objects configured in the object field: %s"
             % (str(self.objects))
         )
-
         sites = self.index_sites(collection, ids, index=(SITES in self.objects))
 
         if not self.is_error:
-            lists = self.index_lists(sites, collection, ids, index=(LISTS in self.objects))
+            lists = self.index_lists(sites, ids, index=(LISTS in self.objects))
 
         if ITEMS in self.objects and not self.is_error:
-            self.index_items(lists, collection, ids, index=True)
+            self.index_items(lists, ids, index=True)
 
         logger.info(
             "Completed fetching all the objects for site collection: %s"
@@ -489,23 +487,45 @@ class FetchIndex:
         logger.info(
             "Saving the checkpoint for the site collection: %s" % (collection)
         )
-        if not self.is_error:
-            self.checkpoint.set_checkpoint(collection, current_time)
-        return ids
+
+        is_error_shared.append(self.is_error)
+        self.is_error = False
+        for obj in ['sites', 'lists', 'list_items']:
+            if ids.get(obj):
+                prev_ids = storage[obj]
+                prev_ids.update(ids[obj])
+                storage[obj] = prev_ids
 
 
-def start():
+def datetime_partitioning(start_time, end_time, processes):
+    """ Divides the timerange in equal partitions by number of processors
+        :param start_time: start time of the interval
+        :param end_time: end time of the interval
+        :param processes: number of processors the device have
+    """
+    start_time = datetime.strptime(start_time, DATETIME_FORMAT)
+    end_time = datetime.strptime(end_time, DATETIME_FORMAT)
+
+    diff = (end_time - start_time) / processes
+    for idx in range(processes):
+        yield (start_time + diff * idx)
+    yield end_time
+
+
+def start(indexing_type):
     """Runs the indexing logic regularly after a given interval
         or puts the connector to sleep
+        :param indexing_type: The type of the indexing i.e. Incremental Sync or Full sync
     """
     logger.info("Starting the indexing..")
     config = Configuration("sharepoint_connector_config.yml", logger)
-
-    indexing_interval = 60
     data = config.configurations
+    is_error_shared = multiprocessing.Manager().list()
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ids_collection = {}
+        ids_collection = {"global_keys": {}}
+        storage_with_collection = {"global_keys": {}, "delete_keys": {}}
+
         if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
             with open(IDS_PATH) as ids_store:
                 try:
@@ -515,41 +535,87 @@ def start():
                         "Error while parsing the json file of the ids store from path: %s. Error: %s"
                         % (IDS_PATH, exception)
                     )
+            # delete all the permissions present in workplace search
+            if indexing_type == "full_sync":
+                sharepoint_client = SharePoint(logger)
+                permission = Permissions(logger, sharepoint_client)
+                permission.remove_all_permissions(data=data)
+
+        storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
+
         for collection in data.get("sharepoint.site_collections"):
+            storage = multiprocessing.Manager().dict({"sites": {}, "lists": {}, "list_items": {}})
             logger.info(
                 "Starting the data fetching for site collection: %s"
                 % (collection)
             )
             check = Checkpoint(logger, data)
-            start_time, end_time = check.get_checkpoint(
-                collection, current_time)
-            logger.info(
-                "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
-                % (start_time, end_time)
-            )
-            if not ids_collection.get(collection):
-                ids_collection[collection] = {
+
+            # get the processors from the config file and if not exists, then directly fetch from os
+            worker_process = data.get("worker_process")
+            if worker_process is None or worker_process <= 0:
+                worker_process = os.cpu_count()
+            if indexing_type == "incremental":
+                start_time, end_time = check.get_checkpoint(
+                    collection, current_time)
+            else:
+                start_time = data.get("start_time")
+                end_time = current_time
+
+            # partitioning the data collection timeframe in equal parts by worker processes
+            partitions = list(datetime_partitioning(
+                start_time, end_time, worker_process))
+
+            datelist = []
+            for sub in partitions:
+                datelist.append(sub.strftime(DATETIME_FORMAT))
+
+            jobs = []
+            if not ids_collection["global_keys"].get(collection):
+                ids_collection["global_keys"][collection] = {
                     "sites": {}, "lists": {}, "list_items": {}}
-            indexer = FetchIndex(data, start_time, end_time)
-            ids_collection[collection] = indexer.indexing(
-                collection, current_time, ids_collection[collection])
+
+            for num in range(0, worker_process):
+                start_time_partition = datelist[num]
+                end_time_partition = datelist[num + 1]
+
+                logger.info(
+                    "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
+                    % (start_time_partition, end_time_partition)
+                )
+                indexer = FetchIndex(
+                    data, start_time_partition, end_time_partition)
+
+                process = multiprocessing.Process(target=indexer.indexing, args=(collection, ids_collection["global_keys"][collection], storage, is_error_shared, ))
+
+                jobs.append(process)
+
+            for job in jobs:
+                job.start()
+            for job in jobs:
+                job.join()
+
+            storage_with_collection["global_keys"][collection] = storage.copy()
+
+            if "True" in is_error_shared:
+                check.set_checkpoint(collection, start_time, indexing_type)
+            else:
+                check.set_checkpoint(collection, end_time, indexing_type)
+
         with open(IDS_PATH, "w") as f:
             try:
-                json.dump(ids_collection, f, indent=4)
+                json.dump(storage_with_collection, f, indent=4)
             except ValueError as exception:
                 logger.warn(
                     'Error while adding ids to json file. Error: %s' % (exception))
-        try:
-            indexing_interval = int(data.get("indexing_interval", 60))
-        except ValueError as exception:
-            logger.exception(
-                "Error while converting the parameter indexing_interval: %s to integer. Considering the default value as 60 minutes. Error: %s"
-                % (indexing_interval, exception)
-            )
+        if indexing_type == "incremental":
+            interval = data.get("indexing_interval")
+        else:
+            interval = data.get("full_sync_interval")
         # TODO: need to use schedule instead of time.sleep
         logger.info("Sleeping..")
-        time.sleep(indexing_interval * 60)
+        time.sleep(interval * 60)
 
 
 if __name__ == "__main__":
-    start()
+    start("incremental")

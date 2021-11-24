@@ -7,15 +7,15 @@ def validate_date_new(input_date):
 
 
 schema = {
-    'sharepoint.client_secret': {
+    'sharepoint.domain': {
         'required': True,
         'type': 'string'
     },
-    'sharepoint.client_id': {
+    'sharepoint.username': {
         'required': True,
         'type': 'string'
     },
-    'sharepoint.realm': {
+    'sharepoint.password': {
         'required': True,
         'type': 'string'
     },
@@ -118,6 +118,12 @@ schema = {
         'default': 60,
         'min': 1
     },
+    'full_sync_interval': {
+        'required': False,
+        'type': 'integer',
+        'default': 2880,
+        'min': 60
+    },
     'log_level': {
         'required': False,
         'type': 'string',
@@ -133,5 +139,9 @@ schema = {
     'sharepoint_workplace_user_mapping': {
         'required': False,
         'type': 'string'
+    },
+    'worker_process': {
+        'required': False,
+        'type': 'integer'
     }
 }
