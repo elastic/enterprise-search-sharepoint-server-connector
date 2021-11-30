@@ -76,7 +76,21 @@ schema = {
                         }
                     }
                 },
-            'items': {
+            'list_items': {
+                    'type': 'dict',
+                    'nullable': True,
+                    'schema': {
+                        'include_fields': {
+                            'nullable': True,
+                            'type': 'list'
+                        },
+                        'exclude_fields': {
+                            'nullable': True,
+                            'type': 'list'
+                        }
+                    }
+                },
+            'drive_items': {
                     'type': 'dict',
                     'nullable': True,
                     'schema': {

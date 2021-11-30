@@ -22,16 +22,16 @@ class Deindex:
         self.sharepoint_client = SharePoint(logger)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
 
-    def deindexing_items(self, collection, ids):
+    def deindexing_items(self, collection, ids, key):
         """Fetches the id's of deleted items from the sharepoint server and
            invokes delete documents api for those ids to remove them from
            workplace search
         """
-        delete_ids_items = ids["delete_keys"][collection].get("list_items")
+        delete_ids_items = ids["delete_keys"][collection].get(key)
         logger.info("Deindexing items...")
         if delete_ids_items:
             delete_site = []
-            global_ids_items = ids["global_keys"][collection]["list_items"]
+            global_ids_items = ids["global_keys"][collection][key]
             for site_url, item_details in delete_ids_items.items():
                 delete_list = []
                 for list_name, items in item_details.items():
@@ -65,7 +65,7 @@ class Deindex:
             for site_url in delete_site:
                 global_ids_items.pop(site_url)
         else:
-            logger.info("No list-items found to be deleted for collection: %s" % collection)
+            logger.info("No list-items or drive-items found to be deleted for collection: %s" % collection)
         return ids
 
     def deindexing_lists(self, collection, ids):
@@ -145,7 +145,8 @@ def start():
                 if ids["delete_keys"].get(collection):
                     ids = deindexer.deindexing_sites(collection, ids)
                     ids = deindexer.deindexing_lists(collection, ids)
-                    ids = deindexer.deindexing_items(collection, ids)
+                    ids = deindexer.deindexing_items(collection, ids, "list_items")
+                    ids = deindexer.deindexing_items(collection, ids, "drive_items")
                 else:
                     logger.info("No objects present to be deleted for the collection: %s" % collection)
             ids["delete_keys"] = {}

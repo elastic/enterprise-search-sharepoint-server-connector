@@ -2,7 +2,8 @@ from sharepoint_utils import encode
 from elastic_enterprise_search import WorkplaceSearch
 SITES = "sites"
 LISTS = "lists"
-ITEMS = "items"
+ITEMS = "list_items"
+DRIVES = "drive_items"
 
 
 class Permissions:
@@ -24,7 +25,8 @@ class Permissions:
         maps = {
             SITES: "_api/web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
             LISTS: f"_api/web/lists/getbytitle(\'{encode(title)}\')/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            ITEMS: f"_api/web/lists/getbytitle(\'{encode(title)}\')/items({id})/roleassignments?$expand=Member/users,RoleDefinitionBindings"
+            ITEMS: f"_api/web/lists/getbytitle(\'{encode(title)}\')/items({id})/roleassignments?$expand=Member/users,RoleDefinitionBindings",
+            DRIVES: f"_api/web/lists/getbytitle(\'{encode(title)}\')/items({id})/roleassignments?$expand=Member/users,RoleDefinitionBindings"
         }
         if not rel_url.endswith("/"):
             rel_url = rel_url + "/"

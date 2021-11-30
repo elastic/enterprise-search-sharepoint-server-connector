@@ -22,7 +22,7 @@ class SharePoint:
         """ Invokes a GET call to the Sharepoint server
             :param rel_url: relative url to the sharepoint farm
             :param query: query for passing arguments to the url
-            :param param_name: parameter name whether it is SITES, LISTS, ITEMS, permissions or deindex
+            :param param_name: parameter name whether it is sites, lists, list_items, drive_items, permissions or deindex
             Returns:
                 Response of the GET call
         """
@@ -37,7 +37,7 @@ class SharePoint:
         while paginate_query:
             if param_name in ["sites", "lists"]:
                 paginate_query = query + f"&$skip={skip}&$top={top}"
-            elif skip == 0 and param_name == "items":
+            elif skip == 0 and param_name in ["list_items", "drive_items"]:
                 paginate_query = query + f"&$top={top}"
             elif param_name in ["permission_users", "permission_groups", "deindex", "attachment"]:
                 paginate_query = query
@@ -59,7 +59,7 @@ class SharePoint:
                             if len(response_result) < 5000:
                                 paginate_query = None
                             break
-                        elif param_name == "items" and response:
+                        elif param_name in ["list_items", "drive_items"] and response:
                             response_data = response.json()
                             response_list["d"]["results"].extend(response_data.get("d", {}).get("results"))
                             paginate_query = response_data.get("d", {}).get("__next", False)
@@ -113,6 +113,10 @@ class SharePoint:
         query = ""
         if param_name in ["sites", "lists"]:
             query = f"?$filter=(LastItemModifiedDate ge datetime'{start_time}') and (LastItemModifiedDate le datetime'{end_time}')"
-        elif param_name == "items":
-            query = f"?$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"
+        else:
+            query = f"$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"
+            if param_name == "list_items":
+                query = "?" + query
+            else:
+                query = "&" + query
         return query
