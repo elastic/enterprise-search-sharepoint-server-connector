@@ -162,6 +162,8 @@ schema = {
     },
     'worker_process': {
         'required': False,
-        'type': 'integer'
+        'type': 'integer',
+        'default': 40,
+        'min': 1
     }
 }

@@ -3,15 +3,11 @@
 This connector synchronizes and enables searching over following items:
 
 * Site collections
-* Sites in a collection
-* Lists 
-* Items
+* Sites and sub sites
+* Lists
+* Items (List items)
 * Attachments
-
-Support for following items expected in the upcoming versions:
-
-* Sub-sites
-* Drives
+* Drives items (files and folders)
 
 If you have a multi-tenant environment, you need to configure one connector instance for each of the tenants / web-applications.
 
@@ -49,15 +45,45 @@ Required fields in the configuration file:
 
 The remaining parameters are optional and have a default value.
 
+## Running the Connector ##
+
+### Running a specific functionality as a daemon process ###
+
+To run any specific functionality as a daemon process, execute the following command:
+```bash
+python3 filename.py >/dev/null 2>&1 &
+```
+For example, if you want to run indexing functionality as a daemon process, simply execute the following command:
+```bash
+python3 fetch_index.py >/dev/null 2>&1 &
+```
+
+### Running multiple functionalities as a daemon process ###
+
+To run the connector with multiple functionalies as a daemon process, execute the following shell script command:
+```bash
+sh runner.sh >/dev/null 2>&1 &
+```
+This command will run all the functionalities (full sync, indexing documents, deindexing documents, indexing permissions) parallelly. 
+
 ## Indexing ##
 
 You are all set to begin synchronizing document to Workplace Search. Run the python file _fetch_index.py_. The file will run in intervals and ingest the data from SharePoint Server 2016.
 
-If the permission fetching is enabled in the configuration file, fetch_index also handles permission fetching from the SharePoint server and ingests the documents with document level permissions. This would replicate document permissions from SharePoint Server to Workplace Search.
+If the permission fetching is enabled in the configuration file, fetch_index also handles document level permission fetching from the SharePoint server and ingests the documents with document level permissions. This would replicate document permissions from SharePoint Server to Workplace Search.
+The connector has two modes for indexing: incremental and fullsync.
+The default mode is incremental sync.
+Fullsync on the other hand, ensures indexing occurs from the _start_time_ provided in the configuration file till the current time of execution. To run fullsync, execute the python file _full_sync.py_.
+
+Note: Indexing of all the sub sites is guaranteed only in fullsync and not in incremental sync due to an issue in SharePoint, i.e. the parent site does not get updated whenever a subsite inside it is modified. Hence, if we create/modify a sub site, the last updated time of parent site is not altered.
+
+## Sync user permissions ##
+
+This functionality will sync any updates to the users and groups in the Sharepoint with Workplace
 
 ## De-Indexing ##
 
-When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the deindex.py file for deleting the records from Workplace Search.
+When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the _deindex.py_ file for deleting the records from Workplace Search.
 
 ## Testing ##
 

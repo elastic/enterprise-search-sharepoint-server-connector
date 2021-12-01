@@ -152,7 +152,7 @@ class FetchIndex:
             logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
             return sites
         logger.info(
-            "Successfuly fetched and parsed %s sites response from SharePoint" % len(response_data)
+            "Successfully fetched and parsed %s sites response from SharePoint" % len(response_data)
         )
         logger.info("Indexing the sites to the Workplace")
 
@@ -218,7 +218,7 @@ class FetchIndex:
                 logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
                 continue
             logger.info(
-                "Successfuly fetched and parsed %s list response for site: %s from SharePoint"
+                "Successfully fetched and parsed %s list response for site: %s from SharePoint"
                 % (len(response_data), site)
             )
 
@@ -303,7 +303,7 @@ class FetchIndex:
                 logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                 continue
             logger.info(
-                "Successfuly fetched and parsed %s listitem response for list: %s from SharePoint"
+                "Successfully fetched and parsed %s listitem response for list: %s from SharePoint"
                 % (len(response_data), value[1])
             )
 
@@ -400,7 +400,7 @@ class FetchIndex:
                 logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                 continue
             logger.info(
-                "Successfuly fetched and parsed %s drive item response for library: %s from SharePoint"
+                "Successfully fetched and parsed %s drive item response for library: %s from SharePoint"
                 % (len(response_data), value[1])
             )
             schema_drive = self.get_schema_fields(DRIVES)
@@ -570,6 +570,25 @@ def datetime_partitioning(start_time, end_time, processes):
     yield end_time
 
 
+def init_multiprocessing(data, start_time, end_time, collection, ids, storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details):
+    """This method initializes the FetchIndex class and kicks-off the multiprocessing. This is a wrapper method added to fix the pickling issue while using multiprocessing in Windows
+            :param data: configuration dictionary
+            :param start_time: start time of the indexing
+            :param end_time: end time of the indexing
+            :param collection: collection name
+            :param ids: id collection of the all the objects
+            :param storage: temporary storage for storing all the documents
+            :is_error_shared: list of all the is_error values
+            :job_type: denotes the type of sharepoint object being fetched in a particular process
+            :parent_site_url: parent site relative path
+            :sites_path: dictionary of site path and it's last updated time
+            :lists_details: dictionary containing list name, list path and id
+            :library_details: dictionary containing library name, library path and id
+        """
+    indexer = FetchIndex(data, start_time, end_time)
+    indexer.indexing(collection, ids, storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details)
+
+
 def start(indexing_type):
     """Runs the indexing logic regularly after a given interval
         or puts the connector to sleep
@@ -604,10 +623,7 @@ def start(indexing_type):
             )
             check = Checkpoint(logger, data)
 
-            # get the processors from the config file and if not exists, then directly fetch from os
             worker_process = data.get("worker_process")
-            if worker_process is None or worker_process <= 0:
-                worker_process = os.cpu_count()
             if indexing_type == "incremental":
                 start_time, end_time = check.get_checkpoint(
                     collection, current_time)
@@ -645,10 +661,9 @@ def start(indexing_type):
                     "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
                     % (start_time_partition, end_time_partition)
                 )
-                indexer = FetchIndex(
-                    data, start_time_partition, end_time_partition)
+
                 for job_type, job_list in jobs.items():
-                    process = multiprocessing.Process(target=indexer.indexing, args=(collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
+                    process = multiprocessing.Process(target=init_multiprocessing, args=(data, start_time_partition, end_time_partition, collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
                     job_list.append(process)
 
             for job_list in jobs.values():
