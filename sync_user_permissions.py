@@ -10,10 +10,6 @@ import csv
 from fetch_index import check_response
 
 logger = log.setup_logging("sharepoint_index_permissions")
-SITES = "sites"
-LISTS = "lists"
-ITEMS = "items"
-LISTITEMS = "list_items"
 
 
 class SyncUserPermission:
@@ -34,55 +30,67 @@ class SyncUserPermission:
         self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
 
     def get_users_id(self):
-        """ This method returns the dictionary having the users as a key and it's unique id as a value
+        """ This method returns the dictionary of dictionaries containing users and their id
+            as a key value pair for all the site-collections.
         """
         user_ids = {}
         for collection in self.site_collections:
+            user_id_collection = {}
             rel_url = f"{self.sharepoint_host}sites/{collection}/_api/web/siteusers"
             response = self.sharepoint_client.get(rel_url, "?", "permission_users")
-            users = check_response(response.json(), "Could not fetch the SharePoint users.", "Error while parsing the response from url.", "sharepoint_users")
+            if not response:
+                logger.error("Could not fetch the SharePoint users")
+                continue
+            users, _ = check_response(response.json(), "Could not fetch the SharePoint users.", "Error while parsing the response from url.", "sharepoint_users")
+
             for user in users:
-                user_ids[user["Title"]] = user["Id"]
+                user_id_collection[user["Title"]] = user["Id"]
+            user_ids.update({collection: user_id_collection})
         return user_ids
 
     def get_user_groups(self, user_ids):
-        """ This method returns the groups of each user
+        """ This method returns the groups of each user in all the site-collections
             :param user_ids: user ids to fetch the groups of the specific user
         """
         user_group = {}
         for collection in self.site_collections:
+            user_group_collection = {}
             rel_url = f"{self.sharepoint_host}sites/{collection}/"
-            for name, id in user_ids.items():
+            for name, id in user_ids[collection].items():
                 response = self.permissions.fetch_groups(rel_url, id)
-                groups = check_response(response.json(), "Could not fetch the SharePoint user groups.", "Error while parsing the response from url.", "user_groups")
-                user_group[name] = [group['Title'] for group in groups]
+                if response:
+                    groups, _ = check_response(response.json(), "Could not fetch the SharePoint user groups.", "Error while parsing the response from url.", "user_groups")
+                    if groups:
+                        user_group_collection[name] = [group['Title'] for group in groups]
+            user_group.update({collection: user_group_collection})
         return user_group
 
     def workplace_add_permission(self, permissions):
         """ This method when invoked would index the permission provided in the paramater
             for the user in paramter user_name
-            :param permissions: dictionary containing permissions of all the users
+            :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection.
         """
-        for user_name, permission_list in permissions.items():
-            try:
-                self.ws_client.add_user_permissions(
-                    content_source_id=self.ws_source,
-                    user=user_name,
-                    body={
-                        "permissions": permission_list
-                    },
-                )
-                logger.info(
-                    "Successfully indexed the permissions for user %s to the workplace" % (
-                        user_name
+        for collection in self.site_collections:
+            for user_name, permission_list in permissions[collection].items():
+                try:
+                    self.ws_client.add_user_permissions(
+                        content_source_id=self.ws_source,
+                        user=user_name,
+                        body={
+                            "permissions": permission_list
+                        },
                     )
-                )
-            except Exception as exception:
-                logger.exception(
-                    "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
-                        user_name, exception
+                    logger.info(
+                        "Successfully indexed the permissions for user %s to the workplace" % (
+                            user_name
+                        )
                     )
-                )
+                except Exception as exception:
+                    logger.exception(
+                        "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
+                            user_name, exception
+                        )
+                    )
 
     def sync_permissions(self):
         """ This method when invoked, checks the permission of SharePoint users and update those user
@@ -97,15 +105,19 @@ class SyncUserPermission:
 
         users = self.get_users_id()
         user_names = {}
-        for user, id in users.items():
-            user_names.update({rows.get(user, user): id})
-        user_groups = self.get_user_groups(user_names)
-
-        # delete all the permissions present in workplace search
-        self.permissions.remove_all_permissions(data=self.data)
-
-        # add all the updated permissions
-        self.workplace_add_permission(user_groups)
+        user_groups = {}
+        if users:
+            for collection in self.site_collections:
+                user_name_collection = {}
+                for user, id in users[collection].items():
+                    user_name_collection.update({rows.get(user, user): id})
+                user_names.update({collection: user_name_collection})
+            user_groups = self.get_user_groups(user_names)
+            # delete all the permissions present in workplace search
+            self.permissions.remove_all_permissions(data=self.data)
+            if user_groups:
+                # add all the updated permissions
+                self.workplace_add_permission(user_groups)
 
 
 def start():
@@ -118,10 +130,10 @@ def start():
 
     while True:
         enable_permission = data.get("enable_document_permission")
-        permission_indexer = SyncUserPermission(data)
         if not enable_permission:
             logger.info('Exiting as the enable permission flag is set to False')
             exit(0)
+        permission_indexer = SyncUserPermission(data)
         permission_indexer.sync_permissions()
 
         try:

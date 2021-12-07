@@ -86,6 +86,7 @@ class SharePoint:
                         if retry < self.retry_count:
                             time.sleep(2 ** retry)
                         retry += 1
+                        paginate_query = None
                         continue
 
                 except RequestException as exception:
@@ -101,6 +102,8 @@ class SharePoint:
                     else:
                         return False
                     retry += 1
+        if retry > self.retry_count:
+            return response
         return response_list
 
     def get_query(self, start_time, end_time, param_name):

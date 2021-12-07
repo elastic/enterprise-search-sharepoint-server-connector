@@ -1,4 +1,3 @@
-from sharepoint_utils import encode
 from elastic_enterprise_search import WorkplaceSearch
 SITES = "sites"
 LISTS = "lists"
@@ -12,21 +11,21 @@ class Permissions:
         self.sharepoint_client = sharepoint_client
         self.logger.info("Initilized Permissions class")
 
-    def fetch_users(self, key, rel_url, title="", id=""):
+    def fetch_users(self, key, rel_url, list_id="", item_id=""):
         """ Invokes GET calls to fetch unique permissions assigned to an object
             :param key: object key
             :param rel_url: relative url to the sharepoint farm
-            :param title: list title
-            :param id: item id
+            :param list_id: list guid
+            :param item_id: item id
             Returns:
                 Response of the GET call
         """
         self.logger.info("Fetching the user roles for key: %s" % (key))
         maps = {
             SITES: "_api/web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            LISTS: f"_api/web/lists/getbytitle(\'{encode(title)}\')/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            ITEMS: f"_api/web/lists/getbytitle(\'{encode(title)}\')/items({id})/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            DRIVES: f"_api/web/lists/getbytitle(\'{encode(title)}\')/items({id})/roleassignments?$expand=Member/users,RoleDefinitionBindings"
+            LISTS: f"_api/web/lists(guid\'{list_id}\')/roleassignments?$expand=Member/users,RoleDefinitionBindings",
+            ITEMS: f"_api/web/lists(guid\'{list_id}\')/items({item_id})/roleassignments?$expand=Member/users,RoleDefinitionBindings",
+            DRIVES: f"_api/web/lists(guid\'{list_id}\')/items({item_id})/roleassignments?$expand=Member/users,RoleDefinitionBindings"
         }
         if not rel_url.endswith("/"):
             rel_url = rel_url + "/"
@@ -68,6 +67,5 @@ class Permissions:
             :param userid: user id for fetching the roles
         """
         self.logger.info("Fetching the group roles for userid: %s" % (userid))
-        response = self.sharepoint_client.get(
+        return self.sharepoint_client.get(
             rel_url, f"_api/web/GetUserById({userid})/groups", "permission_groups")
-        return response
