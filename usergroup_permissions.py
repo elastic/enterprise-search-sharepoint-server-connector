@@ -1,8 +1,8 @@
 from elastic_enterprise_search import WorkplaceSearch
 SITES = "sites"
 LISTS = "lists"
-ITEMS = "list_items"
-DRIVES = "drive_items"
+LIST_ITEMS = "list_items"
+DRIVE_ITEMS = "drive_items"
 
 
 class Permissions:
@@ -24,8 +24,8 @@ class Permissions:
         maps = {
             SITES: "_api/web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
             LISTS: f"_api/web/lists(guid\'{list_id}\')/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            ITEMS: f"_api/web/lists(guid\'{list_id}\')/items({item_id})/roleassignments?$expand=Member/users,RoleDefinitionBindings",
-            DRIVES: f"_api/web/lists(guid\'{list_id}\')/items({item_id})/roleassignments?$expand=Member/users,RoleDefinitionBindings"
+            LIST_ITEMS: f"_api/web/lists(guid\'{list_id}\')/items({item_id})/roleassignments?$expand=Member/users,RoleDefinitionBindings",
+            DRIVE_ITEMS: f"_api/web/lists(guid\'{list_id}\')/items({item_id})/roleassignments?$expand=Member/users,RoleDefinitionBindings"
         }
         if not rel_url.endswith("/"):
             rel_url = rel_url + "/"
