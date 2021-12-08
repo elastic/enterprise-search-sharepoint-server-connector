@@ -76,7 +76,21 @@ schema = {
                         }
                     }
                 },
-            'items': {
+            'list_items': {
+                    'type': 'dict',
+                    'nullable': True,
+                    'schema': {
+                        'include_fields': {
+                            'nullable': True,
+                            'type': 'list'
+                        },
+                        'exclude_fields': {
+                            'nullable': True,
+                            'type': 'list'
+                        }
+                    }
+                },
+            'drive_items': {
                     'type': 'dict',
                     'nullable': True,
                     'schema': {
@@ -124,6 +138,12 @@ schema = {
         'default': 2880,
         'min': 60
     },
+    'sync_permission_interval': {
+        'required': False,
+        'type': 'integer',
+        'default': 60,
+        'min': 1
+    },
     'log_level': {
         'required': False,
         'type': 'string',
@@ -142,6 +162,8 @@ schema = {
     },
     'worker_process': {
         'required': False,
-        'type': 'integer'
+        'type': 'integer',
+        'default': 40,
+        'min': 1
     }
 }

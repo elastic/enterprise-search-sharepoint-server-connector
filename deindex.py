@@ -2,7 +2,6 @@ import time
 import json
 import requests
 import os
-from sharepoint_utils import encode
 from elastic_enterprise_search import WorkplaceSearch
 from sharepoint_client import SharePoint
 from configuration import Configuration
@@ -22,22 +21,22 @@ class Deindex:
         self.sharepoint_client = SharePoint(logger)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
 
-    def deindexing_items(self, collection, ids):
+    def deindexing_items(self, collection, ids, key):
         """Fetches the id's of deleted items from the sharepoint server and
            invokes delete documents api for those ids to remove them from
            workplace search
         """
-        delete_ids_items = ids["delete_keys"][collection].get("list_items")
+        delete_ids_items = ids["delete_keys"][collection].get(key)
         logger.info("Deindexing items...")
         if delete_ids_items:
             delete_site = []
-            global_ids_items = ids["global_keys"][collection]["list_items"]
+            global_ids_items = ids["global_keys"][collection][key]
             for site_url, item_details in delete_ids_items.items():
                 delete_list = []
-                for list_name, items in item_details.items():
+                for list_id, items in item_details.items():
                     doc = []
                     for item_id in items:
-                        url = f"{self.sharepoint_host}{site_url}/_api/web/lists/getbytitle(\'{encode(list_name)}\')/items"
+                        url = f"{self.sharepoint_host}{site_url}/_api/web/lists(guid\'{list_id}\')/items"
                         resp = self.sharepoint_client.get(
                             url, f"?$filter= GUID eq  \'{item_id}\'", "deindex")
                         if resp:
@@ -50,22 +49,22 @@ class Deindex:
                             http_auth=self.ws_token,
                             content_source_id=self.ws_source,
                             document_ids=doc)
-                    updated_items = global_ids_items[site_url].get(list_name)
+                    updated_items = global_ids_items[site_url].get(list_id)
                     if updated_items is None:
                         continue
                     for id in doc:
                         if id in updated_items:
                             updated_items.remove(id)
                     if updated_items == []:
-                        delete_list.append(list_name)
-                for list_name in delete_list:
-                    global_ids_items[site_url].pop(list_name)
+                        delete_list.append(list_id)
+                for list_id in delete_list:
+                    global_ids_items[site_url].pop(list_id)
                 if global_ids_items[site_url] == {}:
                     delete_site.append(site_url)
             for site_url in delete_site:
                 global_ids_items.pop(site_url)
         else:
-            logger.info("No list-items found to be deleted for collection: %s" % collection)
+            logger.info("No %s found to be deleted for collection: %s" % (key, collection))
         return ids
 
     def deindexing_lists(self, collection, ids):
@@ -82,10 +81,10 @@ class Deindex:
             global_ids_lists = ids["global_keys"][collection]["lists"]
             for site_url, list_details in delete_ids_lists.items():
                 doc = []
-                for list_id, list_name in list_details.items():
-                    url = f"{self.sharepoint_host}{site_url}/_api/web/lists/getbytitle(\'{encode(list_name)}\')"
+                for list_id in list_details.keys():
+                    url = f"{self.sharepoint_host}{site_url}/_api/web/lists(guid\'{list_id}\')"
                     resp = self.sharepoint_client.get(url, '', "deindex")
-                    if resp.status_code == requests.codes['not_found']:
+                    if resp and resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
                 self.ws_client.delete_documents(
                     http_auth=self.ws_token,
@@ -114,7 +113,7 @@ class Deindex:
             for site_id, site_url in site_details.items():
                 url = f"{self.sharepoint_host}{site_url}/_api/web"
                 resp = self.sharepoint_client.get(url, '', "deindex")
-                if resp.status_code == requests.codes['not_found']:
+                if resp and resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
             self.ws_client.delete_documents(
                 http_auth=self.ws_token,
@@ -145,7 +144,8 @@ def start():
                 if ids["delete_keys"].get(collection):
                     ids = deindexer.deindexing_sites(collection, ids)
                     ids = deindexer.deindexing_lists(collection, ids)
-                    ids = deindexer.deindexing_items(collection, ids)
+                    ids = deindexer.deindexing_items(collection, ids, "list_items")
+                    ids = deindexer.deindexing_items(collection, ids, "drive_items")
                 else:
                     logger.info("No objects present to be deleted for the collection: %s" % collection)
             ids["delete_keys"] = {}

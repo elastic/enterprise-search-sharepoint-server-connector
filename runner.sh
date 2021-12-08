@@ -1,0 +1,1 @@
+python3 fullsync.py & python3 fetch_index.py & python3 deindex.py & python3 sync_user_permissions.py

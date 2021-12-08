@@ -13,10 +13,16 @@ DEFAULT_SCHEMA = {
         'relative_url': 'ParentWebUrl',
         'title': 'Title'
     },
-    'items': {
+    'list_items': {
         'title': 'Title',
         'id': 'GUID',
         'created_at': 'Created',
         'author_id': 'AuthorId'
+    },
+    'drive_items': {
+        'title': 'Name',
+        'id': 'GUID',
+        'created_at': 'TimeCreated',
+        'last_updated': 'TimeLastModified'
     }
 }
