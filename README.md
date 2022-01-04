@@ -77,6 +77,8 @@ Fullsync on the other hand, ensures indexing occurs from the _start_time_ provid
 
 Note: Indexing of all the sub sites is guaranteed only in fullsync and not in incremental sync due to an issue in SharePoint, i.e. the parent site does not get updated whenever a subsite inside it is modified. Hence, if we create/modify a sub site, the last updated time of parent site is not altered.
 
+The connector inherently uses Tika module for parsing file contents from attachments. [Tika-python](https://github.com/chrismattmann/tika-python) uses Apache Tika REST server. To use this library, you need to have Java 7+ installed on your system as tika-python starts up the Tika REST server in the background. Tika Server also detects contents from images by automatically calling Tesseract OCR. To allow Tika to also extract content from images, you need to make sure tesseract is on your path and then restart tika-server in the backgroud(if it is already running), by doing `ps aux | grep tika | grep server` and then `kill -9 <pid>`
+
 ## Sync user permissions ##
 
 This functionality will sync any updates to the users and groups in the Sharepoint with Workplace
