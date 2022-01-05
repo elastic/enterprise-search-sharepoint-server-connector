@@ -7,8 +7,8 @@
 from elastic_enterprise_search import WorkplaceSearch
 import argparse
 import getpass
-from configuration import Configuration
-import logger_manager as log
+from .configuration import Configuration
+from . import logger_manager as log
 logger = log.setup_logging("sharepoint_connector_bootstrap")
 
 

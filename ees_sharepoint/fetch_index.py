@@ -8,22 +8,22 @@ import multiprocessing
 import time
 import copy
 import requests
-from sharepoint_utils import encode
+from .sharepoint_utils import encode
 from urllib.parse import urljoin
 from elastic_enterprise_search import WorkplaceSearch
-from checkpointing import Checkpoint
-from sharepoint_client import SharePoint
-from configuration import Configuration
-import logger_manager as log
-from usergroup_permissions import Permissions
+from .checkpointing import Checkpoint
+from .sharepoint_client import SharePoint
+from .configuration import Configuration
+from .usergroup_permissions import Permissions
 from datetime import datetime
 from dateutil.parser import parse
 import os
 import json
 from tika.tika import TikaException
-from sharepoint_utils import extract
+from .sharepoint_utils import extract
 import re
-import adapter
+from . import adapter
+from . import logger_manager as log
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 

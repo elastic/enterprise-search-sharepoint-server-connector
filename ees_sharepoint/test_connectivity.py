@@ -4,12 +4,12 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
-from sharepoint_client import SharePoint
+from .sharepoint_client import SharePoint
 import time
-import logger_manager as log
+from . import logger_manager as log
 from elastic_enterprise_search import WorkplaceSearch
-from configuration import Configuration
-from sharepoint_utils import print_and_log
+from .configuration import Configuration
+from .sharepoint_utils import print_and_log
 from urllib.parse import urljoin
 import pytest
 

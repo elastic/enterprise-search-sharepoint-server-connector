@@ -8,8 +8,8 @@ import requests
 import time
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
-from configuration import Configuration
-from sharepoint_utils import print_and_log
+from .configuration import Configuration
+from .sharepoint_utils import print_and_log
 
 
 class SharePoint:

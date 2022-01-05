@@ -32,9 +32,8 @@ bootstrap.py file. To use bootstrap.py, make sure you have specified
 'enterprise_search.host_url' and 'workplace_search.access_token' in the
 sharepoint_connector_config.yml file. Run the bootstrap command:
 
-```bash
-python3 bootstrap.py --name <Name of the Content Source> --user <Admin Username>
-```
+    python3 bootstrap.py --name <Name of the Content Source> --user <Admin Username>
+
 Here, the parameter 'name' is _required_ while 'user' is _optional_.
 You will be prompted to share the user's password if 'user' parameter was specified above. If the parameter 'user' was not specified, the connector would use 'workplace_search.access_token' specified in the configuration file for bootstrapping the content source.
 
@@ -70,15 +69,17 @@ For example, if you want to run indexing functionality as a daemon process, simp
 
     python3 fetch_index.py >/dev/null 2>&1 &
 
-### Running multiple functionalities as a daemon process ###
+Running multiple functionalities as a daemon process
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To run the connector with multiple functionalies as a daemon process, execute the following shell script command:
-```bash
-sh runner.sh >/dev/null 2>&1 &
-```
+
+    sh runner.sh >/dev/null 2>&1 &
+
 This command will run all the functionalities (full sync, indexing documents, deindexing documents, indexing permissions) parallelly.
 
-## Indexing ##
+Indexing
+========
 
 You are all set to begin synchronizing document to Workplace Search. Run the python file _fetch_index.py_. The file will run in intervals and ingest the data from SharePoint Server 2016.
 
@@ -89,15 +90,18 @@ Fullsync on the other hand, ensures indexing occurs from the _start_time_ provid
 
 Note: Indexing of all the sub sites is guaranteed only in fullsync and not in incremental sync due to an issue in SharePoint, i.e. the parent site does not get updated whenever a subsite inside it is modified. Hence, if we create/modify a sub site, the last updated time of parent site is not altered.
 
-## Sync user permissions ##
+Sync user permissions
+=====================
 
 This functionality will sync any updates to the users and groups in the Sharepoint with Workplace
 
-## De-Indexing ##
+De-indexing
+===========
 
 When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the _deindex.py_ file for deleting the records from Workplace Search.
 
-## Testing ##
+Testing
+=======
 
 You can run the automated tests using pytest to check the connectivity with Sharepoint and Workplace Search server.
 The automated test can be run in three different modes:
@@ -107,7 +111,7 @@ The automated test can be run in three different modes:
 * ingestion : test the basic ingestion and deletion to the Workplace Search
 
 Use the following command:
-```bash
-pytest -m <mode>
-```
+
+    pytest -m <mode>
+
 If you do not provide a mode, the connector will run the test for all the modes
