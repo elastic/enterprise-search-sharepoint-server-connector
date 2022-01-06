@@ -702,7 +702,3 @@ def start(indexing_type):
         # TODO: need to use schedule instead of time.sleep
         logger.info("Sleeping..")
         time.sleep(interval * 60)
-
-
-if __name__ == "__main__":
-    start("incremental")

@@ -50,6 +50,8 @@ setup(
     install_requires=install_requires,
     entry_points="""
       [console_scripts]
-      fullsync = ees_sharepoint.fullsync:main
+      full_sync = ees_sharepoint.fullsync:main
+      incremental_sync = ees_sharepoint.incremental_sync:main
+      deletions_sync = ees_sharepoint.deindex:main
       """,
 )

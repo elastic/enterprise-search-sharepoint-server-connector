@@ -173,6 +173,5 @@ def start():
         logger.info('Sleeping..')
         time.sleep(deindexing_interval * 60)
 
-
-if __name__ == "__main__":
+def main():
     start()
