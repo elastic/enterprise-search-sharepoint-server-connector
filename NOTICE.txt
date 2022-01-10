@@ -640,7 +640,7 @@ ecs_logging: https://github.com/elastic/ecs-logging-python (Apache License 2.0)
 
 ================================================================================
 
-ecs_logging: https://github.com/pyeve/cerberus (ISC License)
+cerberus: https://github.com/pyeve/cerberus (ISC License)
 
 ISC License
 
