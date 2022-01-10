@@ -1,4 +1,4 @@
-enterprice-search-sharepoint-server-2016-connector (implements Enterprise Search Connector for Sharepoint Server 2016)
+enterprise-search-sharepoint-server-2016-connector (implements Enterprise Search Connector for Sharepoint Server 2016)
 
 Copyright Elasticsearch B.V. and the enterprice-search-sharepoint-server-2016-connector repository contributors.
 
