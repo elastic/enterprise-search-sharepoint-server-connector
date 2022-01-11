@@ -12,7 +12,7 @@ from . import logger_manager as log
 logger = log.setup_logging("sharepoint_connector_bootstrap")
 
 
-def main():
+def start():
     config = Configuration("sharepoint_connector_config.yml", logger=logger)
     data = config.configurations
     parser = argparse.ArgumentParser(
@@ -65,7 +65,3 @@ def main():
             f"Created ContentSource with ID {content_source_id}. You may now begin indexing with content-source-id= {content_source_id}")
     except Exception as exception:
         print("Could not create a content source, Error %s" % (exception))
-
-
-if __name__ == "__main__":
-    main()

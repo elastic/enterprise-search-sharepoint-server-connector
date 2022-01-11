@@ -172,6 +172,3 @@ def start():
         # TODO: need to use schedule instead of time.sleep
         logger.info('Sleeping..')
         time.sleep(deindexing_interval * 60)
-
-def main():
-    start()

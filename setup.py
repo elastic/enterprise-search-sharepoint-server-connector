@@ -48,10 +48,13 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     install_requires=install_requires,
+    data_files=[("config", ["sharepoint_connector_config.yml"])],
     entry_points="""
       [console_scripts]
-      full_sync = ees_sharepoint.fullsync:main
-      incremental_sync = ees_sharepoint.incremental_sync:main
-      deletions_sync = ees_sharepoint.deindex:main
+      bootstrap = ees_sharepoint.cmd:bootstrap
+      test_connectivity = ees_sharepoint.cmd:test_connectivity
+      full_sync = ees_sharepoint.cmd:full_sync
+      incremental_sync = ees_sharepoint.cmd:incremental_sync
+      deletion_sync = ees_sharepoint.cmd:deletion_sync
       """,
 )
