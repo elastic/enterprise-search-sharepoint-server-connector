@@ -5,9 +5,10 @@
 #
 
 # Standard library imports
+import os
 import logging
 import logging.handlers
-import os
+
 import ecs_logging
 
 

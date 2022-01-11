@@ -4,13 +4,15 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
-from elastic_enterprise_search import WorkplaceSearch
 import argparse
 import getpass
+
+from elastic_enterprise_search import WorkplaceSearch
+
 from .configuration import Configuration
 from . import logger_manager as log
-logger = log.setup_logging("sharepoint_connector_bootstrap")
 
+logger = log.setup_logging("sharepoint_connector_bootstrap")
 
 def start():
     config = Configuration("sharepoint_connector_config.yml", logger=logger)

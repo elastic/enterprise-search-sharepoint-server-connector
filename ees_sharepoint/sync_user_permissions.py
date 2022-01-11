@@ -5,14 +5,16 @@
 #
 
 import time
+import os
+import csv
+
 from elastic_enterprise_search import WorkplaceSearch
+
 from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
 from . import logger_manager as log
 from .usergroup_permissions import Permissions
-import os
-import csv
 from .fetch_index import check_response
 
 logger = log.setup_logging("sharepoint_index_permissions")

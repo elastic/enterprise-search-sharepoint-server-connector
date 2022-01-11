@@ -7,6 +7,7 @@
 import yaml
 from yaml.error import YAMLError
 from cerberus import Validator
+
 from .schema import schema
 from .sharepoint_utils import print_and_log
 

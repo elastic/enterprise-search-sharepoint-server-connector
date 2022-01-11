@@ -4,9 +4,9 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
-from tika import parser
 import urllib.parse
 
+from tika import parser
 
 def print_and_log(logger, level, message):
     """ Prints the log messages

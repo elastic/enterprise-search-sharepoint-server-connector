@@ -5,6 +5,7 @@
 #
 
 from elastic_enterprise_search import WorkplaceSearch
+
 SITES = "sites"
 LISTS = "lists"
 LIST_ITEMS = "list_items"

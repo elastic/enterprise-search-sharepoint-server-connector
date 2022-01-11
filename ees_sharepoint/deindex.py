@@ -8,7 +8,9 @@ import time
 import json
 import requests
 import os
+
 from elastic_enterprise_search import WorkplaceSearch
+
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
 from . import logger_manager as log

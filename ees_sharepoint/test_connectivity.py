@@ -4,14 +4,16 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
-from .sharepoint_client import SharePoint
 import time
-from . import logger_manager as log
+import pytest
+from urllib.parse import urljoin
+
 from elastic_enterprise_search import WorkplaceSearch
+
+from .sharepoint_client import SharePoint
+from . import logger_manager as log
 from .configuration import Configuration
 from .sharepoint_utils import print_and_log
-from urllib.parse import urljoin
-import pytest
 
 logger = log.setup_logging("sharepoint_connector_test")
 

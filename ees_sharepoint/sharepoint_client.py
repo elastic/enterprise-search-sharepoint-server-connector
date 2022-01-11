@@ -4,10 +4,11 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
-import requests
 import time
+import requests
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
+
 from .configuration import Configuration
 from .sharepoint_utils import print_and_log
 
