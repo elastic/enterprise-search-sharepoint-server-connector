@@ -59,7 +59,7 @@ class Configuration(metaclass=Singleton):
         if validator.errors:
             print_and_log(self.logger, "error", "Error while validating the config. Errors: %s" % (
                 validator.errors))
-            exit(0)
+            sys.exit(0)
         self.logger.info("Successfully validated the config file")
         return validator.document
 

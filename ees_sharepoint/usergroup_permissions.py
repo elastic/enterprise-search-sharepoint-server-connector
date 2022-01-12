@@ -3,6 +3,10 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""usergroup_permissions module allows to manage user permissions.
+
+It can be used to fetch user permissions from Sharepoint Server
+or clean permissions in Elastic Enterprise Search"""
 
 from elastic_enterprise_search import WorkplaceSearch
 
@@ -13,6 +17,7 @@ DRIVE_ITEMS = "drive_items"
 
 
 class Permissions:
+    """This class encapsulates all module logic."""
     def __init__(self, logger, sharepoint_client):
         self.logger = logger
         self.sharepoint_client = sharepoint_client

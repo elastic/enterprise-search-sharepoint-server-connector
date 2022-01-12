@@ -4,10 +4,16 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
+"""test_connectivity module allows to test that connector setup is correct.
+
+It's possible to check connectivity to Sharepoint Server instance,
+to Elastic Enterprise Search instance and check if ingestion of
+documents works."""
+
 import time
-import pytest
 from urllib.parse import urljoin
 
+import pytest
 from elastic_enterprise_search import WorkplaceSearch
 
 from .sharepoint_client import SharePoint
@@ -18,8 +24,9 @@ from .sharepoint_utils import print_and_log
 logger = log.setup_logging("sharepoint_connector_test")
 
 
-@pytest.fixture
-def settings():
+@pytest.fixture(name="settings")
+def fixture_settings():
+    """This function loads config from the file and returns it along with retry_count setting."""
     configuration = Configuration(
         file_name="sharepoint_connector_config.yml", logger=logger
     )
@@ -28,13 +35,12 @@ def settings():
 
 @pytest.mark.sharepoint
 def test_sharepoint(settings):
-    """ Tests the connection to the sharepoint server by calling a basic get request to fetch sites in a collection and logs proper messages
-    """
+    """ Tests the connection to the sharepoint server by calling a basic get request to fetch sites in a collection and logs proper messages"""
     configs, _ = settings
     logger.info("Starting SharePoint connectivity tests..")
     sharepoint_client = SharePoint(logger)
     collection = configs.get_value("sharepoint.site_collections")[0]
-    response = sharepoint_client.get_value(urljoin(configs.get_value(
+    response = sharepoint_client.get(urljoin(configs.get_value(
         "sharepoint.host_url"), f"/sites/{collection}/_api/web/webs"), query="?", param_name="sites")
     if not response:
         assert False, "Error while connecting to the Sharepoint server at %s" % (
@@ -46,8 +52,7 @@ def test_sharepoint(settings):
 
 @pytest.mark.workplace
 def test_workplace(settings):
-    """ Tests the connection to the Enterprise search host
-    """
+    """ Tests the connection to the Enterprise search host"""
     configs, retry_count = settings
     logger.info("Starting Workplace connectivity tests..")
     enterprise_search_host = configs.get_value("enterprise_search.host_url")
@@ -92,8 +97,7 @@ def test_workplace(settings):
 
 @pytest.mark.ingestion
 def test_ingestion(settings):
-    """ Tests the successful ingestion and deletion of a sample document to the Workplace search
-    """
+    """ Tests the successful ingestion and deletion of a sample document to the Workplace search"""
     configs, retry_count = settings
     enterprise_search_host = configs.get_value("enterprise_search.host_url")
     logger.info("Starting Workplace ingestion tests..")

@@ -56,5 +56,6 @@ setup(
       full_sync = ees_sharepoint.cmd:full_sync
       incremental_sync = ees_sharepoint.cmd:incremental_sync
       deletion_sync = ees_sharepoint.cmd:deletion_sync
+      permission_sync = ees_sharepoint.cmd:permission_sync
       """,
 )

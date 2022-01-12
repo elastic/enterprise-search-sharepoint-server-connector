@@ -4,12 +4,15 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
+"""schema module contains Connector configuration file schema."""
+
 import datetime
 
-
 def validate_date_new(input_date):
+    """This function returns true if its argument is a valid RFC 3339 date."""
     if input_date:
         return datetime.datetime.strptime(input_date, "%Y-%m-%dT%H:%M:%SZ")
+    return False
 
 
 schema = {

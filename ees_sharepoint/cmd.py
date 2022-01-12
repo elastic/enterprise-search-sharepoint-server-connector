@@ -9,7 +9,7 @@ Each endpoint provides a meaningful piece of functionallity
 related to uploading data from Sharepoint Server 2016
 to Elastic Enterprise Search"""
 
-from . import create_content_source, fetch_index, deindex
+from . import create_content_source, fetch_index, deindex, sync_user_permissions
 
 def bootstrap():
     """bootstrap function is responsible for Content Source creation.
@@ -47,3 +47,11 @@ def deletion_sync():
     This function will attempt to delete the data that was deleted from Sharepoint Server 2016
     but is still available at Elastic Enterprise Search instance."""
     deindex.start()
+
+def permission_sync():
+    """permission_sync function is responsible for syncing Sharepoint Server user permissions.
+
+    This function will attempt to fetch permissions for the users permissions from Sharepoint
+    Server and sending them to Elastic Enterprise Search instance. This will effectively
+    recalculate the permissions for all users in Elastic Enterprise Search."""
+    sync_user_permissions.start()

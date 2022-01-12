@@ -1,0 +1,13 @@
+[MESSAGES CONTROL]
+disable=broad-except,
+        c-extension-no-member,
+        consider-using-f-string,
+        fixme,
+        line-too-long,
+        logging-not-lazy,
+        too-many-arguments,
+        too-many-branches,
+        too-many-instance-attributes,
+        too-many-locals,
+        too-many-nested-blocks,
+        too-many-statements

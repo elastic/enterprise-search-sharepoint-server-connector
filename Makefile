@@ -22,6 +22,9 @@ install_locally:
 test:
 	${PYTHON} -m pytest
 
+lint:
+	pylint ees_sharepoint
+
 clean:
 	rm -rf venv
 	rm -rf build

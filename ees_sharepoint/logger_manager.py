@@ -3,8 +3,9 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""This module contains logging-related logic."""
+#TODO: clean up
 
-# Standard library imports
 import os
 import logging
 import logging.handlers
@@ -17,8 +18,7 @@ def setup_logging(log_name, log_level=logging.INFO):
 
     :param log_name: name for logger
     :param log_level: log level, a string
-    :return: a logger object
-    """
+    :return: a logger object"""
 
     # Make path till log file
     log_name += ".log"
@@ -36,7 +36,7 @@ def setup_logging(log_name, log_level=logging.INFO):
     logger.setLevel(log_level)
 
     handler_exists = any(
-        [h.baseFilename == log_file for h in logger.handlers]
+        h.baseFilename == log_file for h in logger.handlers
     )
 
     if not handler_exists:

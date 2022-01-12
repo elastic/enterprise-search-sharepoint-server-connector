@@ -3,17 +3,19 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""fetch_index module allows to sync data to Elastic Enterprise Search.
+
+It's possible to run full syncs and incremental syncs with this module."""
 
 import multiprocessing
 import time
 import copy
-import requests
 import os
 import re
 import json
 from datetime import datetime
-from dateutil.parser import parse
 from urllib.parse import urljoin
+from dateutil.parser import parse
 
 from elastic_enterprise_search import WorkplaceSearch
 from tika.tika import TikaException
@@ -53,7 +55,7 @@ def check_response(response, error_message, exception_message, param_name):
     if not response:
         logger.error(error_message)
         return (False, True)
-    elif param_name == "attachment" and not response.get("d", {}).get("results"):
+    if param_name == "attachment" and not response.get("d", {}).get("results"):
         logger.info(error_message)
         return (False, False)
     try:
@@ -65,7 +67,7 @@ def check_response(response, error_message, exception_message, param_name):
 
 
 class FetchIndex:
-
+    """This class allows ingesting data from Sharepoint Server to Elastic Enterprise Search."""
     def __init__(self, config, start_time, end_time):
         logger.info("Initializing the Indexing class")
         self.is_error = False
@@ -170,17 +172,17 @@ class FetchIndex:
         document = []
 
         if index:
-            for num in range(len(response_data)):
+            for i, _ in enumerate(response_data):
                 doc = {'type': SITE}
                 # need to convert date to iso else workplace search throws error on date format Invalid field value: Value '2021-09-29T08:13:00' cannot be parsed as a date (RFC 3339)"]}
-                response_data[num]['Created'] += 'Z'
+                response_data[i]['Created'] += 'Z'
                 for field, response_field in schema.items():
-                    doc[field] = response_data[num].get(response_field)
+                    doc[field] = response_data[i].get(response_field)
                 if self.enable_permission is True:
                     doc["_allow_permissions"] = self.index_permissions(
-                        key=SITES, site=response_data[num]['ServerRelativeUrl'])
+                        key=SITES, site=response_data[i]['ServerRelativeUrl'])
                 document.append(doc)
-                ids["sites"].update({doc["id"]: response_data[num]["ServerRelativeUrl"]})
+                ids["sites"].update({doc["id"]: response_data[i]["ServerRelativeUrl"]})
             self.index_document(document, parent_site_url, SITES)
         for result in response_data:
             site_server_url = result.get("ServerRelativeUrl")
@@ -238,18 +240,18 @@ class FetchIndex:
             if index:
                 if not ids["lists"].get(site):
                     ids["lists"].update({site: {}})
-                for num in range(len(response_data)):
+                for i, _ in enumerate(response_data):
                     doc = {'type': LIST}
                     for field, response_field in schema_list.items():
-                        doc[field] = response_data[num].get(
+                        doc[field] = response_data[i].get(
                             response_field)
                     if self.enable_permission is True:
                         doc["_allow_permissions"] = self.index_permissions(
-                            key=LISTS, site=site, list_id=doc["id"], list_url=response_data[num]['ParentWebUrl'], itemid=None)
+                            key=LISTS, site=site, list_id=doc["id"], list_url=response_data[i]['ParentWebUrl'], itemid=None)
                     doc["url"] = urljoin(base_list_url, re.sub(
-                        r'[^ \w+]', '', response_data[num]["Title"]))
+                        r'[^ \w+]', '', response_data[i]["Title"]))
                     document.append(doc)
-                    ids["lists"][site].update({doc["id"]: response_data[num]["Title"]})
+                    ids["lists"][site].update({doc["id"]: response_data[i]["Title"]})
                 logger.info(
                     "Indexing the list for site: %s to the Workplace" % (site)
                 )
@@ -282,94 +284,94 @@ class FetchIndex:
         logger.info("Fetching all the items for the lists")
         if not lists:
             logger.info("No item was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
-            return []
-        for value in lists.values():
-            if not ids["list_items"].get(value[0]):
-                ids["list_items"].update({value[0]: {}})
-        schema_item = self.get_schema_fields(LIST_ITEMS)
-        for list_content, value in lists.items():
-            if parse(self.start_time) > parse(value[2]):
-                continue
-            rel_url = urljoin(
-                self.sharepoint_host,
-                f"{value[0]}/_api/web/lists(guid'{list_content}')/items",
-            )
-            logger.info(
-                "Fetching the items for list: %s from url: %s"
-                % (value[1], rel_url)
-            )
+        else:
+            for value in lists.values():
+                if not ids["list_items"].get(value[0]):
+                    ids["list_items"].update({value[0]: {}})
+            schema_item = self.get_schema_fields(LIST_ITEMS)
+            for list_content, value in lists.items():
+                if parse(self.start_time) > parse(value[2]):
+                    continue
+                rel_url = urljoin(
+                    self.sharepoint_host,
+                    f"{value[0]}/_api/web/lists(guid'{list_content}')/items",
+                )
+                logger.info(
+                    "Fetching the items for list: %s from url: %s"
+                    % (value[1], rel_url)
+                )
 
-            query = self.sharepoint_client.get_query(
-                self.start_time, self.end_time, LIST_ITEMS)
-            response = self.sharepoint_client.get(rel_url, query, LIST_ITEMS)
+                query = self.sharepoint_client.get_query(
+                    self.start_time, self.end_time, LIST_ITEMS)
+                response = self.sharepoint_client.get(rel_url, query, LIST_ITEMS)
 
-            response_data, self.is_error = check_response(
-                response,
-                "Could not fetch the items for list: %s" % (value[1]),
-                "Error while parsing the get items response for list: %s from url: %s."
-                % (value[1], rel_url),
-                LIST_ITEMS,
-            )
-            if not response_data:
-                logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
-                continue
-            logger.info(
-                "Successfully fetched and parsed %s listitem response for list: %s from SharePoint"
-                % (len(response_data), value[1])
-            )
+                response_data, self.is_error = check_response(
+                    response,
+                    "Could not fetch the items for list: %s" % (value[1]),
+                    "Error while parsing the get items response for list: %s from url: %s."
+                    % (value[1], rel_url),
+                    LIST_ITEMS,
+                )
+                if not response_data:
+                    logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                    continue
+                logger.info(
+                    "Successfully fetched and parsed %s listitem response for list: %s from SharePoint"
+                    % (len(response_data), value[1])
+                )
 
-            list_name = re.sub(r'[^ \w+]', '', value[1])
-            base_item_url = urljoin(self.sharepoint_host,
-                                    f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
-            document = []
-            if not ids["list_items"][value[0]].get(list_content):
-                ids["list_items"][value[0]].update({list_content: []})
-            rel_url = urljoin(
-                self.sharepoint_host, f'{value[0]}/_api/web/lists(guid\'{list_content}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
+                list_name = re.sub(r'[^ \w+]', '', value[1])
+                base_item_url = urljoin(self.sharepoint_host,
+                                        f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
+                document = []
+                if not ids["list_items"][value[0]].get(list_content):
+                    ids["list_items"][value[0]].update({list_content: []})
+                rel_url = urljoin(
+                    self.sharepoint_host, f'{value[0]}/_api/web/lists(guid\'{list_content}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
 
-            new_query = "&" + query.split("?")[1]
-            file_response_data = self.sharepoint_client.get(rel_url, query=new_query, param_name="attachment")
-            if file_response_data:
-                file_response_data, self.is_error = check_response(file_response_data.json(), "No attachments were found at url %s in the interval: start time: %s and end time: %s" % (
-                    rel_url, self.start_time, self.end_time), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
+                new_query = "&" + query.split("?")[1]
+                file_response_data = self.sharepoint_client.get(rel_url, query=new_query, param_name="attachment")
+                if file_response_data:
+                    file_response_data, self.is_error = check_response(file_response_data.json(), "No attachments were found at url %s in the interval: start time: %s and end time: %s" % (
+                        rel_url, self.start_time, self.end_time), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
 
-            for num in range(len(response_data)):
-                doc = {'type': ITEM}
-                if response_data[num].get('Attachments') and file_response_data:
-                    for data in file_response_data:
-                        if response_data[num].get('Title') == data['Title']:
-                            file_relative_url = data[
-                                'AttachmentFiles']['results'][0]['ServerRelativeUrl']
-                            url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{encode(file_relative_url)}\')/$value"
-                            response = self.sharepoint_client.get(
-                                urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
-                            doc['body'] = {}
-                            if response and response.status_code == requests.codes.ok:
-                                try:
-                                    doc['body'] = extract(response.content)
-                                except TikaException as exception:
-                                    logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
+                for i, _ in enumerate(response_data):
+                    doc = {'type': ITEM}
+                    if response_data[i].get('Attachments') and file_response_data:
+                        for data in file_response_data:
+                            if response_data[i].get('Title') == data['Title']:
+                                file_relative_url = data[
+                                    'AttachmentFiles']['results'][0]['ServerRelativeUrl']
+                                url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{encode(file_relative_url)}\')/$value"
+                                response = self.sharepoint_client.get(
+                                    urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
+                                doc['body'] = {}
+                                if response and response.ok:
+                                    try:
+                                        doc['body'] = extract(response.content)
+                                    except TikaException as exception:
+                                        logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
 
-                            break
-                for field, response_field in schema_item.items():
-                    doc[field] = response_data[num].get(
-                        response_field)
-                if self.enable_permission is True:
-                    doc["_allow_permissions"] = self.index_permissions(
-                        key=LIST_ITEMS, list_id=list_content, list_url=value[0], itemid=str(response_data[num]["Id"]))
-                doc["url"] = base_item_url + str(response_data[num]["Id"])
-                document.append(doc)
-                if response_data[num].get("GUID") not in ids["list_items"][value[0]][list_content]:
-                    ids["list_items"][value[0]][list_content].append(
-                        response_data[num].get("GUID"))
-            logger.info(
-                "Indexing the listitem for list: %s to the Workplace"
-                % (value[1])
-            )
+                                break
+                    for field, response_field in schema_item.items():
+                        doc[field] = response_data[i].get(
+                            response_field)
+                    if self.enable_permission is True:
+                        doc["_allow_permissions"] = self.index_permissions(
+                            key=LIST_ITEMS, list_id=list_content, list_url=value[0], itemid=str(response_data[i]["Id"]))
+                    doc["url"] = base_item_url + str(response_data[i]["Id"])
+                    document.append(doc)
+                    if response_data[i].get("GUID") not in ids["list_items"][value[0]][list_content]:
+                        ids["list_items"][value[0]][list_content].append(
+                            response_data[i].get("GUID"))
+                logger.info(
+                    "Indexing the listitem for list: %s to the Workplace"
+                    % (value[1])
+                )
 
-            self.index_document(document, value[1], LIST_ITEMS)
+                self.index_document(document, value[1], LIST_ITEMS)
 
-            responses.append(document)
+                responses.append(document)
         return responses
 
     def index_drive_items(self, libraries, ids):
@@ -383,75 +385,75 @@ class FetchIndex:
         logger.info("Fetching all the files for the library")
         if not libraries:
             logger.info("No file was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
-            return []
-        schema_drive = self.get_schema_fields(DRIVE_ITEMS)
-        for lib_content, value in libraries.items():
-            if parse(self.start_time) > parse(value[2]):
-                continue
-            if not ids["drive_items"].get(value[0]):
-                ids["drive_items"].update({value[0]: {}})
-            rel_url = urljoin(
-                self.sharepoint_host,
-                f"{value[0]}/_api/web/lists(guid'{lib_content}')/items?$select=Modified,Id,GUID,File,Folder&$expand=File,Folder",
-            )
-            logger.info(
-                "Fetching the items for libraries: %s from url: %s"
-                % (value[1], rel_url)
-            )
-            query = self.sharepoint_client.get_query(
-                self.start_time, self.end_time, DRIVE_ITEMS)
-            response = self.sharepoint_client.get(rel_url, query, DRIVE_ITEMS)
-            response_data, self.is_error = check_response(
-                response,
-                "Could not fetch the items for library: %s" % (value[1]),
-                "Error while parsing the get items response for library: %s from url: %s."
-                % (value[1], rel_url),
-                DRIVE_ITEMS,
-            )
-            if not response_data:
-                logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
-                continue
-            logger.info(
-                "Successfully fetched and parsed %s drive item response for library: %s from SharePoint"
-                % (len(response_data), value[1])
-            )
-            document = []
-            if not ids["drive_items"][value[0]].get(lib_content):
-                ids["drive_items"][value[0]].update({lib_content: []})
-            for num in range(len(response_data)):
-                if response_data[num]['File'].get('TimeLastModified'):
-                    obj_type = 'File'
-                    doc = {'type': "file"}
-                    file_relative_url = response_data[num]['File']['ServerRelativeUrl']
-                    url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{encode(file_relative_url)}\')/$value"
-                    response = self.sharepoint_client.get(
-                        urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
-                    doc['body'] = {}
-                    if response and response.status_code == requests.codes.ok:
-                        try:
-                            doc['body'] = extract(response.content)
-                        except TikaException as exception:
-                            logger.error('Error while extracting the contents from the file at %s, Error %s' % (response_data[num].get('Url'), exception))
+        else:
+            schema_drive = self.get_schema_fields(DRIVE_ITEMS)
+            for lib_content, value in libraries.items():
+                if parse(self.start_time) > parse(value[2]):
+                    continue
+                if not ids["drive_items"].get(value[0]):
+                    ids["drive_items"].update({value[0]: {}})
+                rel_url = urljoin(
+                    self.sharepoint_host,
+                    f"{value[0]}/_api/web/lists(guid'{lib_content}')/items?$select=Modified,Id,GUID,File,Folder&$expand=File,Folder",
+                )
+                logger.info(
+                    "Fetching the items for libraries: %s from url: %s"
+                    % (value[1], rel_url)
+                )
+                query = self.sharepoint_client.get_query(
+                    self.start_time, self.end_time, DRIVE_ITEMS)
+                response = self.sharepoint_client.get(rel_url, query, DRIVE_ITEMS)
+                response_data, self.is_error = check_response(
+                    response,
+                    "Could not fetch the items for library: %s" % (value[1]),
+                    "Error while parsing the get items response for library: %s from url: %s."
+                    % (value[1], rel_url),
+                    DRIVE_ITEMS,
+                )
+                if not response_data:
+                    logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                    continue
+                logger.info(
+                    "Successfully fetched and parsed %s drive item response for library: %s from SharePoint"
+                    % (len(response_data), value[1])
+                )
+                document = []
+                if not ids["drive_items"][value[0]].get(lib_content):
+                    ids["drive_items"][value[0]].update({lib_content: []})
+                for i, _ in enumerate(response_data):
+                    if response_data[i]['File'].get('TimeLastModified'):
+                        obj_type = 'File'
+                        doc = {'type': "file"}
+                        file_relative_url = response_data[i]['File']['ServerRelativeUrl']
+                        url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{encode(file_relative_url)}\')/$value"
+                        response = self.sharepoint_client.get(
+                            urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
+                        doc['body'] = {}
+                        if response and response.ok:
+                            try:
+                                doc['body'] = extract(response.content)
+                            except TikaException as exception:
+                                logger.error('Error while extracting the contents from the file at %s, Error %s' % (response_data[i].get('Url'), exception))
+                    else:
+                        obj_type = 'Folder'
+                        doc = {'type': "folder"}
+                    for field, response_field in schema_drive.items():
+                        doc[field] = response_data[i][obj_type].get(
+                            response_field)
+                    doc['id'] = response_data[i].get("GUID")
+                    if self.enable_permission is True:
+                        doc["_allow_permissions"] = self.index_permissions(
+                            key=DRIVE_ITEMS, list_id=lib_content, list_url=value[0], itemid=str(response_data[i].get("ID")))
+                    doc["url"] = urljoin(self.sharepoint_host, response_data[i][obj_type]["ServerRelativeUrl"])
+                    document.append(doc)
+                    if doc['id'] not in ids["drive_items"][value[0]][lib_content]:
+                        ids["drive_items"][value[0]][lib_content].append(doc['id'])
+                if document:
+                    logger.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
+                    self.index_document(document, value[1], DRIVE_ITEMS)
                 else:
-                    obj_type = 'Folder'
-                    doc = {'type': "folder"}
-                for field, response_field in schema_drive.items():
-                    doc[field] = response_data[num][obj_type].get(
-                        response_field)
-                doc['id'] = response_data[num].get("GUID")
-                if self.enable_permission is True:
-                    doc["_allow_permissions"] = self.index_permissions(
-                        key=DRIVE_ITEMS, list_id=lib_content, list_url=value[0], itemid=str(response_data[num].get("ID")))
-                doc["url"] = urljoin(self.sharepoint_host, response_data[num][obj_type]["ServerRelativeUrl"])
-                document.append(doc)
-                if doc['id'] not in ids["drive_items"][value[0]][lib_content]:
-                    ids["drive_items"][value[0]][lib_content].append(doc['id'])
-            if document:
-                logger.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
-                self.index_document(document, value[1], DRIVE_ITEMS)
-            else:
-                logger.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
-                    value[1], self.start_time, self.end_time))
+                    logger.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
+                        value[1], self.start_time, self.end_time))
 
     def get_roles(self, key, site, list_url, list_id, itemid):
         """ Checks the permissions and returns the user roles.
@@ -579,7 +581,7 @@ def datetime_partitioning(start_time, end_time, processes):
 
     diff = (end_time - start_time) / processes
     for idx in range(processes):
-        yield (start_time + diff * idx)
+        yield start_time + diff * idx
     yield end_time
 
 
@@ -616,7 +618,7 @@ def start(indexing_type):
         storage_with_collection = {"global_keys": {}, "delete_keys": {}}
 
         if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
-            with open(IDS_PATH) as ids_store:
+            with open(IDS_PATH, "r", encoding="utf-8") as ids_store:
                 try:
                     ids_collection = json.load(ids_store)
                 except ValueError as exception:
@@ -690,11 +692,11 @@ def start(indexing_type):
             else:
                 check.set_checkpoint(collection, end_time, indexing_type)
 
-        with open(IDS_PATH, "w") as f:
+        with open(IDS_PATH, "w", encoding="utf-8") as file:
             try:
-                json.dump(storage_with_collection, f, indent=4)
+                json.dump(storage_with_collection, file, indent=4)
             except ValueError as exception:
-                logger.warn(
+                logger.warning(
                     'Error while adding ids to json file. Error: %s' % (exception))
         if indexing_type == "incremental":
             interval = config.get_value("indexing_interval")

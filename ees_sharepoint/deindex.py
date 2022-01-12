@@ -147,9 +147,9 @@ def start():
     while True:
         deindexer = Deindex(config)
         try:
-            with open(IDS_PATH) as f:
-                ids = json.load(f)
-            for collection in data.get('sharepoint.site_collections'):
+            with open(IDS_PATH, "r", encoding="utf-8") as file:
+                ids = json.load(file)
+            for collection in config.get('sharepoint.site_collections'):
                 logger.info(
                     'Starting the deindexing for site collection: %s' % collection)
                 if ids["delete_keys"].get(collection):
@@ -160,7 +160,7 @@ def start():
                 else:
                     logger.info("No objects present to be deleted for the collection: %s" % collection)
             ids["delete_keys"] = {}
-            with open(IDS_PATH, "w") as f:
+            with open(IDS_PATH, "w", encoding="utf-8") as file:
                 try:
                     json.dump(ids, file, indent=4)
                 except ValueError as exception:
@@ -168,7 +168,7 @@ def start():
                         "Error while updating the doc_id json file. Error: %s", exception
                     )
         except FileNotFoundError as exception:
-            logger.warn(
+            logger.warnig(
                 "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
                 % exception
             )
