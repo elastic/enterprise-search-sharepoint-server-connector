@@ -22,6 +22,9 @@ install_locally:
 test:
 	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest
 
+cover:
+	${VENV_DIRECTORY}/bin/pytest --cov-fail-under=80 tests
+
 lint:
 	pylint ees_sharepoint
 

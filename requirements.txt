@@ -6,3 +6,4 @@ tika
 ecs_logging
 cerberus
 pytest
+pytest-cov
