@@ -30,7 +30,7 @@ source](https://www.elastic.co/guide/en/workplace-search/current/workplace-searc
 from Workplace Search admin dashboard or you can just bootstrap it using the
 bootstrap.py file. To use bootstrap.py, make sure you have specified
 'enterprise_search.host_url' and 'workplace_search.access_token' in the
-sharepoint_connector_config.yml file. Run the bootstrap command:
+sharepoint_connector_config.yml file. Run the bootstrap command ::
 
     python3 bootstrap.py --name <Name of the Content Source> --user <Admin Username>
 
@@ -61,18 +61,18 @@ Running the Connector
 Running a specific functionality as a daemon process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To run any specific functionality as a daemon process, execute the following command ::
+To run any specific functionality as a daemon process, execute the following command ::bash
 
     python3 filename.py >/dev/null 2>&1 &
 
-For example, if you want to run indexing functionality as a daemon process, simply execute the following command::
+For example, if you want to run indexing functionality as a daemon process, simply execute the following command ::bash
 
     python3 fetch_index.py >/dev/null 2>&1 &
 
 Running multiple functionalities as a daemon process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To run the connector with multiple functionalies as a daemon process, execute the following shell script command:
+To run the connector with multiple functionalies as a daemon process, execute the following shell script command ::bash
 
     sh runner.sh >/dev/null 2>&1 &
 
@@ -110,7 +110,7 @@ The automated test can be run in three different modes:
 * sharepoint : check connectivity with Sharepoint
 * ingestion : test the basic ingestion and deletion to the Workplace Search
 
-Use the following command:
+Use the following command ::bash
 
     pytest -m <mode>
 
