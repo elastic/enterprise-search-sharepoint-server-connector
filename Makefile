@@ -14,13 +14,13 @@ venv_init:
 	${PYTHON} -m venv ${VENV_DIRECTORY}
 
 setup:
-	${PIP} install -r requirements.txt
+	${VENV_DIRECTORY}/bin/${PIP} install -r requirements.txt
 
 install_locally:
 	${VENV_DIRECTORY}/bin/${PIP} install .
 
 test:
-	${PYTHON} -m pytest
+	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest
 
 lint:
 	pylint ees_sharepoint
