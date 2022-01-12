@@ -134,19 +134,18 @@ def start():
     """
     logger.info("Starting the permission indexing..")
     config = Configuration("sharepoint_connector_config.yml", logger)
-    data = config.configurations
 
     while True:
-        enable_permission = data.get("enable_document_permission")
+        enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
             logger.info('Exiting as the enable permission flag is set to False')
             exit(0)
-        permission_indexer = SyncUserPermission(data)
+        permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()
 
         try:
             sync_permission_interval = int(
-                data.get('sync_permission_interval'))
+                config.get_value('sync_permission_interval'))
         except Exception as exception:
             logger.warn('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
                 sync_permission_interval, exception))

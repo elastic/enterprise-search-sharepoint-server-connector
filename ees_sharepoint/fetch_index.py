@@ -66,23 +66,23 @@ def check_response(response, error_message, exception_message, param_name):
 
 class FetchIndex:
 
-    def __init__(self, data, start_time, end_time):
+    def __init__(self, config, start_time, end_time):
         logger.info("Initializing the Indexing class")
         self.is_error = False
-        self.ws_host = data.get("enterprise_search.host_url")
-        self.ws_token = data.get("workplace_search.access_token")
-        self.ws_source = data.get("workplace_search.source_id")
-        self.sharepoint_host = data.get("sharepoint.host_url")
-        self.objects = data.get("objects")
-        self.site_collections = data.get("sharepoint.site_collections")
-        self.enable_permission = data.get("enable_document_permission")
+        self.ws_host = config.get_value("enterprise_search.host_url")
+        self.ws_token = config.get_value("workplace_search.access_token")
+        self.ws_source = config.get_value("workplace_search.source_id")
+        self.sharepoint_host = config.get_value("sharepoint.host_url")
+        self.objects = config.get_value("objects")
+        self.site_collections = config.get_value("sharepoint.site_collections")
+        self.enable_permission = config.get_value("enable_document_permission")
         self.start_time = start_time
         self.end_time = end_time
-        self.checkpoint = Checkpoint(logger, data)
+        self.checkpoint = Checkpoint(logger, config)
         self.sharepoint_client = SharePoint(logger)
         self.permissions = Permissions(logger, self.sharepoint_client)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
-        self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
+        self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
 
     def index_document(self, document, parent_object, param_name):
         """ This method indexes the documents to the workplace.
@@ -609,7 +609,6 @@ def start(indexing_type):
     """
     logger.info("Starting the indexing..")
     config = Configuration("sharepoint_connector_config.yml", logger)
-    data = config.configurations
     is_error_shared = multiprocessing.Manager().list()
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -628,20 +627,20 @@ def start(indexing_type):
 
         storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
 
-        for collection in data.get("sharepoint.site_collections"):
+        for collection in config.get_value("sharepoint.site_collections"):
             storage = multiprocessing.Manager().dict({"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}})
             logger.info(
                 "Starting the data fetching for site collection: %s"
                 % (collection)
             )
-            check = Checkpoint(logger, data)
+            check = Checkpoint(logger, config)
 
-            worker_process = data.get("worker_process")
+            worker_process = config.get_value("worker_process")
             if indexing_type == "incremental":
                 start_time, end_time = check.get_checkpoint(
                     collection, current_time)
             else:
-                start_time = data.get("start_time")
+                start_time = config.get_value("start_time")
                 end_time = current_time
 
             # partitioning the data collection timeframe in equal parts by worker processes
@@ -664,7 +663,7 @@ def start(indexing_type):
             libraries_details = multiprocessing.Manager().dict()
             logger.info(
                 "Starting to index all the objects configured in the object field: %s"
-                % (str(data.get("objects")))
+                % (str(config.get_value("objects")))
             )
             for num in range(0, worker_process):
                 start_time_partition = datelist[num]
@@ -676,7 +675,7 @@ def start(indexing_type):
                 )
 
                 for job_type, job_list in jobs.items():
-                    process = multiprocessing.Process(target=init_multiprocessing, args=(data, start_time_partition, end_time_partition, collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
+                    process = multiprocessing.Process(target=init_multiprocessing, args=(config, start_time_partition, end_time_partition, collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
                     job_list.append(process)
 
             for job_list in jobs.values():
@@ -698,9 +697,9 @@ def start(indexing_type):
                 logger.warn(
                     'Error while adding ids to json file. Error: %s' % (exception))
         if indexing_type == "incremental":
-            interval = data.get("indexing_interval")
+            interval = config.get_value("indexing_interval")
         else:
-            interval = data.get("full_sync_interval")
+            interval = config.get_value("full_sync_interval")
         # TODO: need to use schedule instead of time.sleep
         logger.info("Sleeping..")
         time.sleep(interval * 60)

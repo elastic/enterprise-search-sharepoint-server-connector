@@ -3,6 +3,13 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""This module allows to create Content Source in Elastic Enterprise Search.
+
+It can be used to create a Content Source that will be used to upload the
+data from Sharepoint Server to Elastic Enterprise Search instance.
+
+Otherwise, it's possible to use Content Source that was pre-created
+in Elastic Enterprise Search"""
 
 import argparse
 import getpass
@@ -15,8 +22,13 @@ from . import logger_manager as log
 logger = log.setup_logging("sharepoint_connector_bootstrap")
 
 def start():
+    """This function attempts to create a Content Source.
+
+    It will use data from configuration file to determine
+    which instance of Elastic Enterprise Search will be used
+    to create a Content Source."""
+
     config = Configuration("sharepoint_connector_config.yml", logger=logger)
-    data = config.configurations
     parser = argparse.ArgumentParser(
         description='Create a custom content source.')
     parser.add_argument("--name", required=True, type=str,
@@ -24,7 +36,7 @@ def start():
     parser.add_argument("--user", required=False, type=str,
                         help="username of the workplce search admin account ")
 
-    host = data.get("enterprise_search.host_url")
+    host = config.get_value("enterprise_search.host_url")
     args = parser.parse_args()
     if args.user:
         password = getpass.getpass(prompt='Password: ', stream=None)
@@ -33,7 +45,7 @@ def start():
         )
     else:
         workplace_search = WorkplaceSearch(
-            f"{host}/api/ws/v1/sources", http_auth=data.get("workplace_search.access_token")
+            f"{host}/api/ws/v1/sources", http_auth=config.get_value("workplace_search.access_token")
         )
     try:
         resp = workplace_search.create_content_source(

@@ -3,21 +3,47 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""Cmd module contains entry points for the package.
+
+Each endpoint provides a meaningful piece of functionallity
+related to uploading data from Sharepoint Server 2016
+to Elastic Enterprise Search"""
 
 from . import create_content_source, fetch_index, deindex
 
 def bootstrap():
-  create_content_source.start()
+    """bootstrap function is responsible for Content Source creation.
+
+    This function will attempt to create a Content Source in Enterprise Search
+    instance that is specified in configuration file. After a Content
+    Source is created, its id will be displated in the console."""
+    create_content_source.start()
 
 def test_connectivity():
-  #TODO: implement
-  print("Not yet implemented")
+    """test_connectivity function is responsible for testing service access.
+
+    This function will attempt to check connectivity to all services used
+    by the Connector, or only the services specified as an argument."""
+    #TODO: implement, see test_connectivity.py
+    print("Not yet implemented")
 
 def full_sync():
-  fetch_index.start("full_sync")
+    """full_sync function is responsible for syncing all data from remote system.
+
+    This function will attempt to synchronize all data from Sharepoint Server 2016
+    to Elastic Enterprise Search instance from the beginning of time."""
+    fetch_index.start("full_sync")
 
 def incremental_sync():
-  fetch_index.start("incremental_sync")
+    """incremental_sync function is responsible for syncing data from remote system incrementally.
+
+    This function will attempt to synchronize only data that was modified recently
+    from Sharepoint Server 2016 to Elastic Enterprise Search instance."""
+    fetch_index.start("incremental_sync")
 
 def deletion_sync():
-  deindex.start()
+    """deletion_sync function is responsible for wiping deleted data from Enterprise Search.
+
+    This function will attempt to delete the data that was deleted from Sharepoint Server 2016
+    but is still available at Elastic Enterprise Search instance."""
+    deindex.start()

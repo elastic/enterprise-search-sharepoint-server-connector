@@ -15,15 +15,16 @@ from .sharepoint_utils import print_and_log
 
 class SharePoint:
     def __init__(self, logger):
-        self.logger = logger
         configuration = Configuration(
-            file_name="sharepoint_connector_config.yml", logger=logger
+            file_name="sharepoint_connector_config.yml",
+            logger=logger
         )
-        self.configs = configuration.configurations
-        self.retry_count = int(self.configs.get("retry_count"))
-        self.domain = self.configs.get("sharepoint.domain")
-        self.username = self.configs.get("sharepoint.username")
-        self.password = self.configs.get("sharepoint.password")
+
+        self.logger = logger
+        self.retry_count = int(configuration.get_value("retry_count"))
+        self.domain = configuration.get_value("sharepoint.domain")
+        self.username = configuration.get_value("sharepoint.username")
+        self.password = configuration.get_value("sharepoint.password")
 
     def get(self, rel_url, query, param_name):
         """ Invokes a GET call to the Sharepoint server

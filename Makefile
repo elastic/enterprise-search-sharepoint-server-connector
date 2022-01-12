@@ -1,5 +1,6 @@
 PYTHON = python3
 PIP = pip3
+VENV_DIRECTORY = venv
 
 .DEFAULT_GOAL = help
 
@@ -10,13 +11,13 @@ help:
 	@echo "make clean - remove venv directory from the project"
 
 venv_init:
-	${PYTHON} -m venv venv
+	${PYTHON} -m venv ${VENV_DIRECTORY}
 
 setup:
 	${PIP} install -r requirements.txt
 
 install_locally:
-	${PIP} install .
+	${VENV_DIRECTORY}/bin/${PIP} install .
 
 test:
 	${PYTHON} -m pytest
