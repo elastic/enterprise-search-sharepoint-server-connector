@@ -8,6 +8,8 @@ help:
 	@echo "make venv_init - set up and activate venv for the project"
 	@echo "make setup - set up the project locally"
 	@echo "make test - run the tests for the project"
+	@echo "make cover - check test coverage for the project"
+	@echo "make lint - run linter against the project"
 	@echo "make clean - remove venv directory from the project"
 
 venv_init:
