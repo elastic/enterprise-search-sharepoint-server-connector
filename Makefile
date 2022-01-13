@@ -1,6 +1,7 @@
 PYTHON = python3
 PIP = pip3
 VENV_DIRECTORY = venv
+PROJECT_DIRECTORY = ees_sharepoint
 
 .DEFAULT_GOAL = help
 
@@ -25,10 +26,10 @@ test:
 	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest
 
 cover:
-	${VENV_DIRECTORY}/bin/pytest --cov ees_sharepoint --cov-fail-under=80 tests
+	${VENV_DIRECTORY}/bin/pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=80 tests
 
 lint:
-	flake8 ees_sharepoint
+	flake8 ${PROJECT_DIRECTORY}
 
 clean:
 	rm -rf venv
