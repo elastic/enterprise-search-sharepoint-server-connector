@@ -1,9 +1,8 @@
-# should be pinned
-requests_ntlm
-elastic_enterprise_search
-pyyaml
-tika
-ecs_logging
-cerberus
-pytest
-pytest-cov
+cerberus==1.3.4
+ecs_logging==1.1.0
+elastic_enterprise_search==7.16.0
+pytest==6.2.5
+pytest-cov==3.0.0
+pyyaml==6.0
+tika==1.24
+requests_ntlm==1.1.0
