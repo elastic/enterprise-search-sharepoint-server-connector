@@ -4,21 +4,44 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
+"""sync_user_permissions module allows to sync user permissions from Sharepoint Server.
+
+This module contains all functions that are needed to load permissions from Sharepoint
+Server and load these permissions to Enterprise Search."""
+
 import time
-from elastic_enterprise_search import WorkplaceSearch
-from checkpointing import Checkpoint
-from sharepoint_client import SharePoint
-from configuration import Configuration
-import logger_manager as log
-from usergroup_permissions import Permissions
 import os
 import csv
-from fetch_index import check_response
+
+from elastic_enterprise_search import WorkplaceSearch
+
+from .checkpointing import Checkpoint
+from .sharepoint_client import SharePoint
+from .configuration import Configuration
+from . import logger_manager as log
+from .usergroup_permissions import Permissions
+from .fetch_index import check_response
 
 logger = log.setup_logging("sharepoint_index_permissions")
 
 
+class PermissionSyncDisabledException(Exception):
+    """Exception raised when permission sync is disabled, but expected to be enabled.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message="Provided configuration was invalid"):
+        self.message = message
+        super().__init__(message)
+
+
 class SyncUserPermission:
+    """This class contains logic to sync user permissions from Sharepoint Server.
+
+    It can be used to run the job that will periodically sync permissions
+    from Sharepoint Server to Elastic Enteprise Search."""
     def __init__(self, data):
         logger.info("Initializing the Permission Indexing class")
         self.data = data
@@ -37,8 +60,7 @@ class SyncUserPermission:
 
     def get_users_id(self):
         """ This method returns the dictionary of dictionaries containing users and their id
-            as a key value pair for all the site-collections.
-        """
+            as a key value pair for all the site-collections."""
         user_ids = {}
         for collection in self.site_collections:
             user_id_collection = {}
@@ -56,14 +78,13 @@ class SyncUserPermission:
 
     def get_user_groups(self, user_ids):
         """ This method returns the groups of each user in all the site-collections
-            :param user_ids: user ids to fetch the groups of the specific user
-        """
+            :param user_ids: user ids to fetch the groups of the specific user"""
         user_group = {}
         for collection in self.site_collections:
             user_group_collection = {}
             rel_url = f"{self.sharepoint_host}sites/{collection}/"
-            for name, id in user_ids[collection].items():
-                response = self.permissions.fetch_groups(rel_url, id)
+            for name, user_id in user_ids[collection].items():
+                response = self.permissions.fetch_groups(rel_url, user_id)
                 if response:
                     groups, _ = check_response(response.json(), "Could not fetch the SharePoint user groups.", "Error while parsing the response from url.", "user_groups")
                     if groups:
@@ -74,8 +95,7 @@ class SyncUserPermission:
     def workplace_add_permission(self, permissions):
         """ This method when invoked would index the permission provided in the paramater
             for the user in paramter user_name
-            :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection.
-        """
+            :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection."""
         for collection in self.site_collections:
             for user_name, permission_list in permissions[collection].items():
                 try:
@@ -100,8 +120,7 @@ class SyncUserPermission:
 
     def sync_permissions(self):
         """ This method when invoked, checks the permission of SharePoint users and update those user
-            permissions in the Workplace Search.
-        """
+            permissions in the Workplace Search."""
         rows = {}
         if (os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0):
             with open(self.mapping_sheet_path) as file:
@@ -115,8 +134,8 @@ class SyncUserPermission:
         if users:
             for collection in self.site_collections:
                 user_name_collection = {}
-                for user, id in users[collection].items():
-                    user_name_collection.update({rows.get(user, user): id})
+                for user, user_id in users[collection].items():
+                    user_name_collection.update({rows.get(user, user): user_id})
                 user_names.update({collection: user_name_collection})
             user_groups = self.get_user_groups(user_names)
             # delete all the permissions present in workplace search
@@ -128,31 +147,25 @@ class SyncUserPermission:
 
 def start():
     """ Runs the permission indexing logic regularly after a given interval
-        or puts the connector to sleep
-    """
+        or puts the connector to sleep"""
     logger.info("Starting the permission indexing..")
     config = Configuration("sharepoint_connector_config.yml", logger)
-    data = config.configurations
 
     while True:
-        enable_permission = data.get("enable_document_permission")
+        enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
             logger.info('Exiting as the enable permission flag is set to False')
-            exit(0)
-        permission_indexer = SyncUserPermission(data)
+            raise PermissionSyncDisabledException
+        permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()
 
         try:
             sync_permission_interval = int(
-                data.get('sync_permission_interval'))
+                config.get_value('sync_permission_interval'))
         except Exception as exception:
-            logger.warn('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
+            logger.warning('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
                 sync_permission_interval, exception))
 
         # TODO: need to use schedule instead of time.sleep
         logger.info('Sleeping..')
         time.sleep(sync_permission_interval * 60)
-
-
-if __name__ == "__main__":
-    start()

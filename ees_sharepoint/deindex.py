@@ -3,35 +3,44 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""This module allows to remove recently deleted documents from Elastic Enterprise Search.
+
+Documents that were deleted in Sharepoint Server instance will still be available in
+Elastic Enterprise Search until a full sync happens, or until this module is used."""
 
 import time
 import json
-import requests
 import os
+import requests
+
 from elastic_enterprise_search import WorkplaceSearch
-from sharepoint_client import SharePoint
-from configuration import Configuration
-import logger_manager as log
+
+from .sharepoint_client import SharePoint
+from .configuration import Configuration
+from . import logger_manager as log
 
 logger = log.setup_logging('sharepoint_connector_deindex')
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
 
 class Deindex:
-    def __init__(self, data):
+    """Deindex class allows to remove instances of specific Sharepoint Object types.
+
+    It provides methods to remove from Elastic Enterprise Search items, lists and sites
+    that were deleted in Sharepoint Server instance."""
+    def __init__(self, config):
         logger.info('Initializing the Indexing class')
-        self.ws_host = data.get('enterprise_search.host_url')
-        self.ws_token = data.get('workplace_search.access_token')
-        self.ws_source = data.get('workplace_search.source_id')
-        self.sharepoint_host = data.get('sharepoint.host_url')
+        self.ws_host = config.get_value('enterprise_search.host_url')
+        self.ws_token = config.get_value('workplace_search.access_token')
+        self.ws_source = config.get_value('workplace_search.source_id')
+        self.sharepoint_host = config.get_value('sharepoint.host_url')
         self.sharepoint_client = SharePoint(logger)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
 
     def deindexing_items(self, collection, ids, key):
         """Fetches the id's of deleted items from the sharepoint server and
            invokes delete documents api for those ids to remove them from
-           workplace search
-        """
+           workplace search"""
         delete_ids_items = ids["delete_keys"][collection].get(key)
         logger.info("Deindexing items...")
         if delete_ids_items:
@@ -58,9 +67,9 @@ class Deindex:
                     updated_items = global_ids_items[site_url].get(list_id)
                     if updated_items is None:
                         continue
-                    for id in doc:
-                        if id in updated_items:
-                            updated_items.remove(id)
+                    for updated_item_id in doc:
+                        if updated_item_id in updated_items:
+                            updated_items.remove(updated_item_id)
                     if updated_items == []:
                         delete_list.append(list_id)
                 for list_id in delete_list:
@@ -96,9 +105,9 @@ class Deindex:
                     http_auth=self.ws_token,
                     content_source_id=self.ws_source,
                     document_ids=doc)
-                for id in doc:
-                    if id in global_ids_lists[site_url]:
-                        global_ids_lists[site_url].pop(id)
+                for list_id in doc:
+                    if list_id in global_ids_lists[site_url]:
+                        global_ids_lists[site_url].pop(list_id)
                 if global_ids_lists[site_url] == {}:
                     delete.append(site_url)
             for site_url in delete:
@@ -125,8 +134,8 @@ class Deindex:
                 http_auth=self.ws_token,
                 content_source_id=self.ws_source,
                 document_ids=doc)
-            for id in doc:
-                ids["global_keys"][collection]["sites"].pop(id)
+            for site_id in doc:
+                ids["global_keys"][collection]["sites"].pop(site_id)
         else:
             logger.info("No sites found to be deleted for collection: %s" % collection)
         return ids
@@ -134,17 +143,15 @@ class Deindex:
 
 def start():
     """Runs the de-indexing logic regularly after a given interval
-        or puts the connector to sleep
-    """
-    logger.info('Starting the de-indexing..')
+        or puts the connector to sleep"""
+    logger.info('Starting the de-indexing...')
     config = Configuration("sharepoint_connector_config.yml", logger)
-    data = config.configurations
     while True:
-        deindexer = Deindex(data)
+        deindexer = Deindex(config)
         try:
-            with open(IDS_PATH) as f:
-                ids = json.load(f)
-            for collection in data.get('sharepoint.site_collections'):
+            with open(IDS_PATH) as file:
+                ids = json.load(file)
+            for collection in config.get('sharepoint.site_collections'):
                 logger.info(
                     'Starting the deindexing for site collection: %s' % collection)
                 if ids["delete_keys"].get(collection):
@@ -155,24 +162,19 @@ def start():
                 else:
                     logger.info("No objects present to be deleted for the collection: %s" % collection)
             ids["delete_keys"] = {}
-            with open(IDS_PATH, "w") as f:
+            with open(IDS_PATH, "w") as file:
                 try:
-                    json.dump(ids, f, indent=4)
+                    json.dump(ids, file, indent=4)
                 except ValueError as exception:
                     logger.exception(
-                        "Error while updating the doc_id json file. Error: %s"
-                        % exception
+                        "Error while updating the doc_id json file. Error: %s", exception
                     )
         except FileNotFoundError as exception:
-            logger.warn(
+            logger.warnig(
                 "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
                 % exception
             )
-        deindexing_interval = data.get('deletion_interval')
+        deindexing_interval = config.get_value('deletion_interval')
         # TODO: need to use schedule instead of time.sleep
         logger.info('Sleeping..')
         time.sleep(deindexing_interval * 60)
-
-
-if __name__ == "__main__":
-    start()

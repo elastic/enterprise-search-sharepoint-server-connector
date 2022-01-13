@@ -10,15 +10,15 @@ sharepoint.password: ""
 #The address of the sharepoint farm. Example: http://sharepoint-host:14293/
 sharepoint.host_url: http://sharepoint-host:14682/
 #Specifies the site collections whose contents the user wants to fetch and index.
-sharepoint.site_collections: 
+sharepoint.site_collections:
     - Connector
 #Workplace Search configuration settings
 #Access token for Workplace search authentication
 workplace_search.access_token: "12345678"
 #Source identifier for the custom source created on the workplace search server
 workplace_search.source_id: "12345678"
-#Workplace search server address Example: http://es-host:3002 
-enterprise_search.host_url: "http://es-host:3002/"
+#Workplace search server address Example: http://es-host:3002
+enterprise_search.host_url: "http://localhost:3002/"
 #Connector specific configuration settings
 #Denotes whether document permission will be enabled or not
 enable_document_permission: Yes

@@ -3,31 +3,42 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
+"""Checkpointing module allows to start sync from point in time.
 
+Checkpointing module contains functions that allow to manage checkpoints,
+such as set a checkpoint and get a checkpoint.
+
+Checkpoints help with incremental or interrupted synchronizations,
+remembering the last moment of time when sync successfully finshed,
+so that later next sync can continue from that place.
+"""
 import os
 import json
 
-CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), 'checkpoint.json')
+CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "checkpoint.json")
 
 
 class Checkpoint:
-    def __init__(self, logger, data):
+    """Checkpoints class is responsible for checkpoint operations.
+
+    This class allows to get and set checkpoints, storing them in
+    file system."""
+    def __init__(self, logger, config):
         self.logger = logger
-        self.data = data
+        self.config = config
 
     def get_checkpoint(self, collection, current_time):
         """This method fetches the checkpoint from the checkpoint file in
-           the local storage. If the file does not exist, it takes the
-           checkpoint details from the configuration file.
-           :param collection: collection name
-           :param current_time: current time
-        """
+        the local storage. If the file does not exist, it takes the
+        checkpoint details from the configuration file.
+        :param collection: collection name
+        :param current_time: current time"""
         self.logger.info(
             "Fetching the checkpoint details from the checkpoint file: %s"
             % CHECKPOINT_PATH
         )
 
-        if (os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0):
+        if os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0:
             self.logger.info(
                 "Checkpoint file exists and has contents, hence considering the checkpoint time instead of start_time and end_time"
             )
@@ -37,11 +48,12 @@ class Checkpoint:
 
                     if not checkpoint_list.get(collection):
                         self.logger.info(
-                            "The checkpoint file is present but it does not contain the start_time for the collection %s, hence considering the start_time and end_time from the configuration file instead of the last successful fetch time"
-                            % (collection)
+                            f"""Checkpoint file is present but does not contain start_time \
+                            for the collection #{collection}. Using start_time and end_time \
+                            from the configuration file instead of the last successful fetch time"""
                         )
-                        start_time = self.data.get("start_time")
-                        end_time = self.data.get("end_time")
+                        start_time = self.config.get_value("start_time")
+                        end_time = self.config.get_value("end_time")
                     else:
                         start_time = checkpoint_list.get(collection)
                         end_time = current_time
@@ -53,35 +65,35 @@ class Checkpoint:
                     self.logger.info(
                         "Considering the start_time and end_time from the configuration file"
                     )
-                    start_time = self.data.get("start_time")
-                    end_time = self.data.get("end_time")
+                    start_time = self.config.get_value("start_time")
+                    end_time = self.config.get_value("end_time")
 
         else:
             self.logger.info(
                 "Checkpoint file does not exist at %s, considering the start_time and end_time from the configuration file"
                 % CHECKPOINT_PATH
             )
-            start_time = self.data.get("start_time")
-            end_time = self.data.get("end_time")
+            start_time = self.config.get_value("start_time")
+            end_time = self.config.get_value("end_time")
 
         self.logger.info(
             "Contents of the start_time: %s and end_time: %s for collection %s",
             start_time,
             end_time,
-            collection
+            collection,
         )
         return start_time, end_time
 
     def set_checkpoint(self, collection, current_time, index_type):
         """This method updates the existing checkpoint json file or creates
-           a new checkpoint json file in case it is not present
-           :param collection: collection name
-           :param current_time: current time
-        """
-        if (os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0):
+        a new checkpoint json file in case it is not present
+        :param collection: collection name
+        :param current_time: current time"""
+        if os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0:
             self.logger.info(
-                "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
-                % (current_time, collection, CHECKPOINT_PATH)
+                f"""Setting the checkpoint contents: {current_time} \
+                    for the collection {collection} \
+                    to the checkpoint path:{CHECKPOINT_PATH}"""
             )
             with open(CHECKPOINT_PATH) as checkpoint_store:
                 try:
@@ -95,7 +107,7 @@ class Checkpoint:
 
         else:
             if index_type == "incremental":
-                checkpoint_time = self.data.get('end_time')
+                checkpoint_time = self.config.get_value("end_time")
             else:
                 checkpoint_time = current_time
             self.logger.info(
