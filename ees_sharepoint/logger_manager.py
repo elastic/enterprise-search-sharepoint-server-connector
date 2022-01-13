@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 """This module contains logging-related logic."""
-#TODO: clean up
+# TODO: clean up
 
 import os
 import logging

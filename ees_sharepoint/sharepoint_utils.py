@@ -10,6 +10,7 @@ import urllib.parse
 
 from tika import parser
 
+
 def print_and_log(logger, level, message):
     """ Prints the log messages
         :param logger: logger name

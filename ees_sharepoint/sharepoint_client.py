@@ -13,6 +13,7 @@ from requests_ntlm import HttpNtlmAuth
 from .configuration import Configuration
 from .sharepoint_utils import print_and_log
 
+
 class SharePoint:
     """This class encapsulates all module logic."""
     def __init__(self, logger):
@@ -78,11 +79,11 @@ class SharePoint:
                     if response.status_code >= 400 and response.status_code < 500:
                         if not (param_name == 'deindex' and response.status_code == 404):
                             print_and_log(
-                                    self.logger,
-                                    "exception",
-                                    "Error: %s. Error while fetching from the sharepoint, url: %s."
-                                    % (response.reason, url)
-                                )
+                                self.logger,
+                                "exception",
+                                "Error: %s. Error while fetching from the sharepoint, url: %s."
+                                % (response.reason, url)
+                            )
                         return response
                     print_and_log(
                         self.logger,

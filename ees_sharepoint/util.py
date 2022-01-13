@@ -1,5 +1,6 @@
 """util module contains general utility classes."""
 
+
 class Singleton(type):
     """Singleton class provides a metaclass for Singeton pattern.
 

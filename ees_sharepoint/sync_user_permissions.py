@@ -24,6 +24,7 @@ from .fetch_index import check_response
 
 logger = log.setup_logging("sharepoint_index_permissions")
 
+
 class PermissionSyncDisabledException(Exception):
     """Exception raised when permission sync is disabled, but expected to be enabled.
 
@@ -34,6 +35,7 @@ class PermissionSyncDisabledException(Exception):
     def __init__(self, message="Provided configuration was invalid"):
         self.message = message
         super().__init__(message)
+
 
 class SyncUserPermission:
     """This class contains logic to sync user permissions from Sharepoint Server.
@@ -121,7 +123,7 @@ class SyncUserPermission:
             permissions in the Workplace Search."""
         rows = {}
         if (os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0):
-            with open(self.mapping_sheet_path, "r", encoding="utf-8") as file:
+            with open(self.mapping_sheet_path) as file:
                 csvreader = csv.reader(file)
                 for row in csvreader:
                     rows[row[0]] = row[1]

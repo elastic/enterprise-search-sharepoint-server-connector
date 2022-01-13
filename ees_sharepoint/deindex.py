@@ -22,6 +22,7 @@ from . import logger_manager as log
 logger = log.setup_logging('sharepoint_connector_deindex')
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
+
 class Deindex:
     """Deindex class allows to remove instances of specific Sharepoint Object types.
 
@@ -139,6 +140,7 @@ class Deindex:
             logger.info("No sites found to be deleted for collection: %s" % collection)
         return ids
 
+
 def start():
     """Runs the de-indexing logic regularly after a given interval
         or puts the connector to sleep"""
@@ -147,7 +149,7 @@ def start():
     while True:
         deindexer = Deindex(config)
         try:
-            with open(IDS_PATH, "r", encoding="utf-8") as file:
+            with open(IDS_PATH) as file:
                 ids = json.load(file)
             for collection in config.get('sharepoint.site_collections'):
                 logger.info(
@@ -160,7 +162,7 @@ def start():
                 else:
                     logger.info("No objects present to be deleted for the collection: %s" % collection)
             ids["delete_keys"] = {}
-            with open(IDS_PATH, "w", encoding="utf-8") as file:
+            with open(IDS_PATH, "w") as file:
                 try:
                     json.dump(ids, file, indent=4)
                 except ValueError as exception:

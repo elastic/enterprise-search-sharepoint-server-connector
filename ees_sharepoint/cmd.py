@@ -13,6 +13,7 @@ import sys
 
 from . import create_content_source, fetch_index, deindex, sync_user_permissions
 
+
 def bootstrap():
     """bootstrap function is responsible for Content Source creation.
 
@@ -22,14 +23,15 @@ def bootstrap():
     create_content_source.start()
     sys.exit(0)
 
+
 def test_connectivity():
     """test_connectivity function is responsible for testing service access.
 
     This function will attempt to check connectivity to all services used
     by the Connector, or only the services specified as an argument."""
-    #TODO: implement, see test_connectivity.py
     print("Not yet implemented")
     sys.exit(0)
+
 
 def full_sync():
     """full_sync function is responsible for syncing all data from remote system.
@@ -39,6 +41,7 @@ def full_sync():
     fetch_index.start("full_sync")
     sys.exit(0)
 
+
 def incremental_sync():
     """incremental_sync function is responsible for syncing data from remote system incrementally.
 
@@ -47,6 +50,7 @@ def incremental_sync():
     fetch_index.start("incremental_sync")
     sys.exit(0)
 
+
 def deletion_sync():
     """deletion_sync function is responsible for wiping deleted data from Enterprise Search.
 
@@ -54,6 +58,7 @@ def deletion_sync():
     but is still available at Elastic Enterprise Search instance."""
     deindex.start()
     sys.exit(0)
+
 
 def permission_sync():
     """permission_sync function is responsible for syncing Sharepoint Server user permissions.

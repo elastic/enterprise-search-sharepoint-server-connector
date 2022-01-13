@@ -618,7 +618,7 @@ def start(indexing_type):
         storage_with_collection = {"global_keys": {}, "delete_keys": {}}
 
         if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
-            with open(IDS_PATH, "r", encoding="utf-8") as ids_store:
+            with open(IDS_PATH) as ids_store:
                 try:
                     ids_collection = json.load(ids_store)
                 except ValueError as exception:
@@ -692,7 +692,7 @@ def start(indexing_type):
             else:
                 check.set_checkpoint(collection, end_time, indexing_type)
 
-        with open(IDS_PATH, "w", encoding="utf-8") as file:
+        with open(IDS_PATH, "w") as file:
             try:
                 json.dump(storage_with_collection, file, indent=4)
             except ValueError as exception:

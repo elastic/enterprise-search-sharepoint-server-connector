@@ -21,6 +21,7 @@ from . import logger_manager as log
 
 logger = log.setup_logging("sharepoint_connector_bootstrap")
 
+
 def start():
     """This function attempts to create a Content Source.
 

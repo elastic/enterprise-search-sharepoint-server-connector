@@ -17,6 +17,7 @@ import json
 
 CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "checkpoint.json")
 
+
 class Checkpoint:
     """Checkpoints class is responsible for checkpoint operations.
 
@@ -41,7 +42,7 @@ class Checkpoint:
             self.logger.info(
                 "Checkpoint file exists and has contents, hence considering the checkpoint time instead of start_time and end_time"
             )
-            with open(CHECKPOINT_PATH, "r", encoding="utf-8") as checkpoint_store:
+            with open(CHECKPOINT_PATH) as checkpoint_store:
                 try:
                     checkpoint_list = json.load(checkpoint_store)
 
@@ -94,7 +95,7 @@ class Checkpoint:
                     for the collection {collection} \
                     to the checkpoint path:{CHECKPOINT_PATH}"""
             )
-            with open(CHECKPOINT_PATH, "r", encoding="utf-8") as checkpoint_store:
+            with open(CHECKPOINT_PATH) as checkpoint_store:
                 try:
                     checkpoint_list = json.load(checkpoint_store)
                     checkpoint_list[collection] = current_time
@@ -115,7 +116,7 @@ class Checkpoint:
             )
             checkpoint_list = {collection: checkpoint_time}
 
-        with open(CHECKPOINT_PATH, "w",encoding="utf-8") as checkpoint_store:
+        with open(CHECKPOINT_PATH, "w") as checkpoint_store:
             try:
                 json.dump(checkpoint_list, checkpoint_store, indent=4)
             except ValueError as exception:

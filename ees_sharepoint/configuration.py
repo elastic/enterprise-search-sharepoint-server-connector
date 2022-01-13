@@ -16,6 +16,7 @@ from .schema import schema
 from .sharepoint_utils import print_and_log
 from .util import Singleton
 
+
 class ConfigurationInvalidException(Exception):
     """Exception raised when configuration was invalid.
 
@@ -29,6 +30,7 @@ class ConfigurationInvalidException(Exception):
         self.message = message
         super().__init__(f"{message}. Errors: {errors}.")
 
+
 class Configuration(metaclass=Singleton):
     """Configuration class is responsible for parsing, validating and accessing
     configuration options from connector configuration file."""
@@ -40,7 +42,7 @@ class Configuration(metaclass=Singleton):
         self.logger = logger
 
         try:
-            with open(file_name, "r", encoding="utf-8") as stream:
+            with open(file_name) as stream:
                 self.__configurations = yaml.safe_load(stream)
         except YAMLError as exception:
             if hasattr(exception, 'problem_mark'):
