@@ -14,6 +14,7 @@ install_requires = [
     "ecs_logging",
     "cerberus",
     "pytest",
+    "pytest-cov"
 ]
 
 description = ""
