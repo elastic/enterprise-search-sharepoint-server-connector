@@ -28,7 +28,7 @@ cover:
 	${VENV_DIRECTORY}/bin/pytest --cov ees_sharepoint --cov-fail-under=80 tests
 
 lint:
-	pylint ees_sharepoint
+	flake8 ees_sharepoint
 
 clean:
 	rm -rf venv
