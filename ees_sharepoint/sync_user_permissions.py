@@ -11,7 +11,6 @@ Server and load these permissions to Enterprise Search."""
 
 import time
 import os
-import sys
 import csv
 
 from elastic_enterprise_search import WorkplaceSearch
@@ -25,6 +24,16 @@ from .fetch_index import check_response
 
 logger = log.setup_logging("sharepoint_index_permissions")
 
+class PermissionSyncDisabledException(Exception):
+    """Exception raised when permission sync is disabled, but expected to be enabled.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message="Provided configuration was invalid"):
+        self.message = message
+        super().__init__(message)
 
 class SyncUserPermission:
     """This class contains logic to sync user permissions from Sharepoint Server.
@@ -144,7 +153,7 @@ def start():
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
             logger.info('Exiting as the enable permission flag is set to False')
-            sys.exit(0)
+            raise PermissionSyncDisabledException
         permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()
 

@@ -8,7 +8,6 @@
 This module can be used to read and validate configuration file that defines
 the settings of the Sharepoint Server connector."""
 
-import sys
 import yaml
 from yaml.error import YAMLError
 from cerberus import Validator
@@ -16,6 +15,19 @@ from cerberus import Validator
 from .schema import schema
 from .sharepoint_utils import print_and_log
 from .util import Singleton
+
+class ConfigurationInvalidException(Exception):
+    """Exception raised when configuration was invalid.
+
+    Attributes:
+        errors - errors found in the configuration
+        message -- explanation of the error
+    """
+
+    def __init__(self, errors, message="Provided configuration was invalid"):
+        self.errors = errors
+        self.message = message
+        super().__init__(f"{message}. Errors: {errors}.")
 
 class Configuration(metaclass=Singleton):
     """Configuration class is responsible for parsing, validating and accessing
@@ -59,7 +71,7 @@ class Configuration(metaclass=Singleton):
         if validator.errors:
             print_and_log(self.logger, "error", "Error while validating the config. Errors: %s" % (
                 validator.errors))
-            sys.exit(0)
+            raise ConfigurationInvalidException(validator.errors)
         self.logger.info("Successfully validated the config file")
         return validator.document
 
