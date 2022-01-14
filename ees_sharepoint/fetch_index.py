@@ -9,6 +9,7 @@ It's possible to run full syncs and incremental syncs with this module."""
 
 import multiprocessing
 import time
+import logging
 import copy
 import os
 import re
@@ -27,11 +28,10 @@ from .configuration import Configuration
 from .usergroup_permissions import Permissions
 from .sharepoint_utils import extract
 from . import adapter
-from . import logger_manager as log
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
-logger = log.setup_logging("sharepoint_connector_index")
+logger = logging.getLogger()
 SITE = "site"
 LIST = "list"
 ITEM = "item"

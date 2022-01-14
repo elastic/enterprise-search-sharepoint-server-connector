@@ -13,14 +13,13 @@ in Elastic Enterprise Search"""
 
 import argparse
 import getpass
+import logging
 
 from elastic_enterprise_search import WorkplaceSearch
 
 from .configuration import Configuration
-from . import logger_manager as log
 
-logger = log.setup_logging("sharepoint_connector_bootstrap")
-
+logger = logging.getLogger()
 
 def start():
     """This function attempts to create a Content Source.
@@ -76,7 +75,7 @@ def start():
         )
 
         content_source_id = resp.get('id')
-        print(
+        logger.info(
             f"Created ContentSource with ID {content_source_id}. You may now begin indexing with content-source-id= {content_source_id}")
     except Exception as exception:
-        print("Could not create a content source, Error %s" % (exception))
+        logger.error("Could not create a content source, Error %s" % (exception))

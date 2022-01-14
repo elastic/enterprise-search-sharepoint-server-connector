@@ -12,14 +12,14 @@ import time
 import json
 import os
 import requests
+import logging
 
 from elastic_enterprise_search import WorkplaceSearch
 
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
-from . import logger_manager as log
 
-logger = log.setup_logging('sharepoint_connector_deindex')
+logger = logging.getLogger()
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
 

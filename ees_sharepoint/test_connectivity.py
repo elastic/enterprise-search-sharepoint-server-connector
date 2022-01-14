@@ -10,17 +10,17 @@ to Elastic Enterprise Search instance and check if ingestion of
 documents works."""
 
 import time
+import logging
 from urllib.parse import urljoin
 
 import pytest
 from elastic_enterprise_search import WorkplaceSearch
 
 from .sharepoint_client import SharePoint
-from . import logger_manager as log
 from .configuration import Configuration
 from .sharepoint_utils import print_and_log
 
-logger = log.setup_logging("sharepoint_connector_test")
+logger = logging.getLogger()
 
 
 @pytest.fixture(name="settings")
