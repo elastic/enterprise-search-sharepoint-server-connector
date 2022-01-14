@@ -3,7 +3,6 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-
 """test_connectivity module allows to test that connector setup is correct.
 
 It's possible to check connectivity to Sharepoint Server instance,

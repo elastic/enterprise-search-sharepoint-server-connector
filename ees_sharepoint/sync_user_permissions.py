@@ -3,7 +3,6 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-
 """sync_user_permissions module allows to sync user permissions from Sharepoint Server.
 
 This module contains all functions that are needed to load permissions from Sharepoint
