@@ -18,7 +18,6 @@ from elastic_enterprise_search import WorkplaceSearch
 
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
-from .sharepoint_utils import print_and_log
 
 logger = logging.getLogger()
 
@@ -73,15 +72,8 @@ def test_workplace(settings):
                 assert True
                 break
         except Exception as exception:
-            print_and_log(
-                logger,
-                "exception",
-                "[Fail] Error while connecting to the workplace host %s. Retry Count: %s. Error: %s"
-                % (
-                    enterprise_search_host,
-                    retry,
-                    exception,
-                ),
+            logger.exception(
+                f"[Fail] Error while connecting to the workplace host {enterprise_search_host}. Retry Count: {retry}. Error: {exception}"
             )
             # This condition is to avoid sleeping for the last time
             if retry < retry_count:
@@ -123,15 +115,8 @@ def test_ingestion(settings):
                 "Successfully indexed a dummy document with id 1234 in the Workplace")
             break
         except Exception as exception:
-            print_and_log(
-                logger,
-                "exception",
-                "[Fail] Error while ingesting document to the workplace host %s. Retry Count: %s. Error: %s"
-                % (
-                    enterprise_search_host,
-                    retry,
-                    exception,
-                ),
+            logger.exception(
+                f"[Fail] Error while ingesting document to the workplace host {enterprise_search_host}. Retry Count: {retry}. Error: {exception}"
             )
             # This condition is to avoid sleeping for the last time
             if retry < retry_count:
@@ -164,15 +149,8 @@ def test_ingestion(settings):
                     assert True
                     break
             except Exception as exception:
-                print_and_log(
-                    logger,
-                    "exception",
-                    "[Fail] Error while deleting document id 1234 from the workplace host %s. Retry Count: %s. Error: %s"
-                    % (
-                        enterprise_search_host,
-                        retry,
-                        exception,
-                    ),
+                logger.exception(
+                    f"[Fail] Error while deleting document id 1234 from the workplace host {enterprise_search_host}. Retry Count: {retry}. Error: {exception}"
                 )
                 # This condition is to avoid sleeping for the last time
                 if retry < retry_count:
