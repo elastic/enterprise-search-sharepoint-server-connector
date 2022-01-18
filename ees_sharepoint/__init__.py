@@ -11,7 +11,9 @@ import os
 import logging
 import logging.config
 
-import ecs_logging
+# Uncomment this line to include dependency that allows to
+# output logs in ECS-compatible format
+# import ecs_logging
 
 log_level = os.environ.get("LOGLEVEL", "WARN")
 logger = logging.getLogger()
