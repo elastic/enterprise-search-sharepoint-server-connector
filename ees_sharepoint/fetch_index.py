@@ -109,9 +109,10 @@ class FetchIndex:
             logging.info("Successfully indexed %s %s for %s to the workplace" % (
                 total_documents_indexed, param_name, parent_object))
         except Exception as exception:
-            logging.exception("Error while indexing the %s for %s. Error: %s"
-                             % (param_name, parent_object, exception)
-                             )
+            logging.exception(
+                "Error while indexing the %s for %s. Error: %s"
+                % (param_name, parent_object, exception)
+            )
             self.is_error = True
 
     def get_schema_fields(self, document_name):

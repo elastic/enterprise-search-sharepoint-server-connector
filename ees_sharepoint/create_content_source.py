@@ -19,6 +19,7 @@ from elastic_enterprise_search import WorkplaceSearch
 
 from .configuration import Configuration
 
+
 def start():
     """This function attempts to create a Content Source.
 
