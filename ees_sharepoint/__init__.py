@@ -19,7 +19,8 @@ logger.propagate = False
 logger.setLevel(log_level)
 
 handler = logging.StreamHandler()
-formatter = ecs_logging.StdlibFormatter()
-handler.setFormatter(formatter)
+# Uncomment the following lines to output logs in ECS-compatible format
+# formatter = ecs_logging.StdlibFormatter()
+# handler.setFormatter(formatter)
 handler.setLevel(log_level)
 logger.addHandler(handler)

@@ -31,7 +31,6 @@ from . import adapter
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
-logger = logging.getLogger()
 SITE = "site"
 LIST = "list"
 ITEM = "item"
@@ -53,23 +52,23 @@ def check_response(response, error_message, exception_message, param_name):
             Parsed response, and is_error flag
     """
     if not response:
-        logger.error(error_message)
+        logging.error(error_message)
         return (False, True)
     if param_name == "attachment" and not response.get("d", {}).get("results"):
-        logger.info(error_message)
+        logging.info(error_message)
         return (False, False)
     try:
         response_data = response.get("d", {}).get("results")
         return (response_data, False)
     except ValueError as exception:
-        logger.exception("%s Error: %s" % (exception_message, exception))
+        logging.exception("%s Error: %s" % (exception_message, exception))
         return (False, True)
 
 
 class FetchIndex:
     """This class allows ingesting data from Sharepoint Server to Elastic Enterprise Search."""
     def __init__(self, config, start_time, end_time):
-        logger.info("Initializing the Indexing class")
+        logging.info("Initializing the Indexing class")
         self.is_error = False
         self.ws_host = config.get_value("enterprise_search.host_url")
         self.ws_token = config.get_value("workplace_search.access_token")
@@ -80,9 +79,9 @@ class FetchIndex:
         self.enable_permission = config.get_value("enable_document_permission")
         self.start_time = start_time
         self.end_time = end_time
-        self.checkpoint = Checkpoint(logger, config)
-        self.sharepoint_client = SharePoint(logger)
-        self.permissions = Permissions(logger, self.sharepoint_client)
+        self.checkpoint = Checkpoint(config)
+        self.sharepoint_client = SharePoint()
+        self.permissions = Permissions(self.sharepoint_client)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
 
@@ -106,11 +105,11 @@ class FetchIndex:
                         if not each['errors']:
                             total_documents_indexed += 1
                         else:
-                            logger.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
-            logger.info("Successfully indexed %s %s for %s to the workplace" % (
+                            logging.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
+            logging.info("Successfully indexed %s %s for %s to the workplace" % (
                 total_documents_indexed, param_name, parent_object))
         except Exception as exception:
-            logger.exception("Error while indexing the %s for %s. Error: %s"
+            logging.exception("Error while indexing the %s for %s. Error: %s"
                              % (param_name, parent_object, exception)
                              )
             self.is_error = True
@@ -148,7 +147,7 @@ class FetchIndex:
         rel_url = urljoin(
             self.sharepoint_host, f"{parent_site_url}/_api/web/webs"
         )
-        logger.info("Fetching the sites detail from url: %s" % (rel_url))
+        logging.info("Fetching the sites detail from url: %s" % (rel_url))
         query = self.sharepoint_client.get_query(
             self.start_time, self.end_time, SITES)
         response = self.sharepoint_client.get(rel_url, query, SITES)
@@ -161,12 +160,12 @@ class FetchIndex:
             SITES,
         )
         if not response_data:
-            logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
+            logging.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
             return sites
-        logger.info(
+        logging.info(
             "Successfully fetched and parsed %s sites response from SharePoint" % len(response_data)
         )
-        logger.info("Indexing the sites to the Workplace")
+        logging.info("Indexing the sites to the Workplace")
 
         schema = self.get_schema_fields(SITES)
         document = []
@@ -199,18 +198,18 @@ class FetchIndex:
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
-        logger.info("Fetching lists for all the sites")
+        logging.info("Fetching lists for all the sites")
         responses = []
         document = []
         if not sites:
-            logger.info("No list was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
+            logging.info("No list was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
             return [], []
         schema_list = self.get_schema_fields(LISTS)
         for site, time_modified in sites.items():
             if parse(self.start_time) > parse(time_modified):
                 continue
             rel_url = urljoin(self.sharepoint_host, f"{site}/_api/web/lists")
-            logger.info(
+            logging.info(
                 "Fetching the lists for site: %s from url: %s"
                 % (site, rel_url)
             )
@@ -228,9 +227,9 @@ class FetchIndex:
                 LISTS,
             )
             if not response_data:
-                logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
+                logging.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
                 continue
-            logger.info(
+            logging.info(
                 "Successfully fetched and parsed %s list response for site: %s from SharePoint"
                 % (len(response_data), site)
             )
@@ -252,7 +251,7 @@ class FetchIndex:
                         r'[^ \w+]', '', response_data[i]["Title"]))
                     document.append(doc)
                     ids["lists"][site].update({doc["id"]: response_data[i]["Title"]})
-                logger.info(
+                logging.info(
                     "Indexing the list for site: %s to the Workplace" % (site)
                 )
 
@@ -281,9 +280,9 @@ class FetchIndex:
         """
         responses = []
         #  here value is a list of url and title
-        logger.info("Fetching all the items for the lists")
+        logging.info("Fetching all the items for the lists")
         if not lists:
-            logger.info("No item was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
+            logging.info("No item was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
         else:
             for value in lists.values():
                 if not ids["list_items"].get(value[0]):
@@ -296,7 +295,7 @@ class FetchIndex:
                     self.sharepoint_host,
                     f"{value[0]}/_api/web/lists(guid'{list_content}')/items",
                 )
-                logger.info(
+                logging.info(
                     "Fetching the items for list: %s from url: %s"
                     % (value[1], rel_url)
                 )
@@ -313,9 +312,9 @@ class FetchIndex:
                     LIST_ITEMS,
                 )
                 if not response_data:
-                    logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                    logging.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                     continue
-                logger.info(
+                logging.info(
                     "Successfully fetched and parsed %s listitem response for list: %s from SharePoint"
                     % (len(response_data), value[1])
                 )
@@ -350,7 +349,7 @@ class FetchIndex:
                                     try:
                                         doc['body'] = extract(response.content)
                                     except TikaException as exception:
-                                        logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
+                                        logging.error('Error while extracting the contents from the attachment, Error %s' % (exception))
 
                                 break
                     for field, response_field in schema_item.items():
@@ -364,7 +363,7 @@ class FetchIndex:
                     if response_data[i].get("GUID") not in ids["list_items"][value[0]][list_content]:
                         ids["list_items"][value[0]][list_content].append(
                             response_data[i].get("GUID"))
-                logger.info(
+                logging.info(
                     "Indexing the listitem for list: %s to the Workplace"
                     % (value[1])
                 )
@@ -382,9 +381,9 @@ class FetchIndex:
             :param ids: structure containing id's of all objects
         """
         #  here value is a list of url and title of the library
-        logger.info("Fetching all the files for the library")
+        logging.info("Fetching all the files for the library")
         if not libraries:
-            logger.info("No file was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
+            logging.info("No file was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
         else:
             schema_drive = self.get_schema_fields(DRIVE_ITEMS)
             for lib_content, value in libraries.items():
@@ -396,7 +395,7 @@ class FetchIndex:
                     self.sharepoint_host,
                     f"{value[0]}/_api/web/lists(guid'{lib_content}')/items?$select=Modified,Id,GUID,File,Folder&$expand=File,Folder",
                 )
-                logger.info(
+                logging.info(
                     "Fetching the items for libraries: %s from url: %s"
                     % (value[1], rel_url)
                 )
@@ -411,9 +410,9 @@ class FetchIndex:
                     DRIVE_ITEMS,
                 )
                 if not response_data:
-                    logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                    logging.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                     continue
-                logger.info(
+                logging.info(
                     "Successfully fetched and parsed %s drive item response for library: %s from SharePoint"
                     % (len(response_data), value[1])
                 )
@@ -433,7 +432,7 @@ class FetchIndex:
                             try:
                                 doc['body'] = extract(response.content)
                             except TikaException as exception:
-                                logger.error('Error while extracting the contents from the file at %s, Error %s' % (response_data[i].get('Url'), exception))
+                                logging.error('Error while extracting the contents from the file at %s, Error %s' % (response_data[i].get('Url'), exception))
                     else:
                         obj_type = 'Folder'
                         doc = {'type': "folder"}
@@ -449,10 +448,10 @@ class FetchIndex:
                     if doc['id'] not in ids["drive_items"][value[0]][lib_content]:
                         ids["drive_items"][value[0]][lib_content].append(doc['id'])
                 if document:
-                    logger.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
+                    logging.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
                     self.index_document(document, value[1], DRIVE_ITEMS)
                 else:
-                    logger.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
+                    logging.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
                         value[1], self.start_time, self.end_time))
 
     def get_roles(self, key, site, list_url, list_id, itemid):
@@ -545,12 +544,12 @@ class FetchIndex:
             if DRIVE_ITEMS in self.objects and not self.is_error:
                 self.index_drive_items(libraries_details, ids)
 
-            logger.info(
+            logging.info(
                 "Completed fetching all the objects for site collection: %s"
                 % (collection)
             )
 
-            logger.info(
+            logging.info(
                 "Saving the checkpoint for the site collection: %s" % (collection)
             )
         is_error_shared.append(self.is_error)
@@ -609,8 +608,8 @@ def start(indexing_type):
         or puts the connector to sleep
         :param indexing_type: The type of the indexing i.e. Incremental Sync or Full sync
     """
-    logger.info("Starting the indexing..")
-    config = Configuration("sharepoint_connector_config.yml", logger)
+    logging.info("Starting the indexing..")
+    config = Configuration("sharepoint_connector_config.yml")
     is_error_shared = multiprocessing.Manager().list()
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -622,7 +621,7 @@ def start(indexing_type):
                 try:
                     ids_collection = json.load(ids_store)
                 except ValueError as exception:
-                    logger.exception(
+                    logging.exception(
                         "Error while parsing the json file of the ids store from path: %s. Error: %s"
                         % (IDS_PATH, exception)
                     )
@@ -631,11 +630,11 @@ def start(indexing_type):
 
         for collection in config.get_value("sharepoint.site_collections"):
             storage = multiprocessing.Manager().dict({"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}})
-            logger.info(
+            logging.info(
                 "Starting the data fetching for site collection: %s"
                 % (collection)
             )
-            check = Checkpoint(logger, config)
+            check = Checkpoint(config)
 
             worker_process = config.get_value("worker_process")
             if indexing_type == "incremental":
@@ -663,7 +662,7 @@ def start(indexing_type):
             sites_path.update({parent_site_url: end_time})
             lists_details = multiprocessing.Manager().dict()
             libraries_details = multiprocessing.Manager().dict()
-            logger.info(
+            logging.info(
                 "Starting to index all the objects configured in the object field: %s"
                 % (str(config.get_value("objects")))
             )
@@ -671,7 +670,7 @@ def start(indexing_type):
                 start_time_partition = datelist[num]
                 end_time_partition = datelist[num + 1]
 
-                logger.info(
+                logging.info(
                     "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
                     % (start_time_partition, end_time_partition)
                 )
@@ -696,12 +695,12 @@ def start(indexing_type):
             try:
                 json.dump(storage_with_collection, file, indent=4)
             except ValueError as exception:
-                logger.warning(
+                logging.warning(
                     'Error while adding ids to json file. Error: %s' % (exception))
         if indexing_type == "incremental":
             interval = config.get_value("indexing_interval")
         else:
             interval = config.get_value("full_sync_interval")
         # TODO: need to use schedule instead of time.sleep
-        logger.info("Sleeping..")
+        logging.info("Sleeping..")
         time.sleep(interval * 60)

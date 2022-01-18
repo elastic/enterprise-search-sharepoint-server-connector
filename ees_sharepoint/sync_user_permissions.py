@@ -21,8 +21,6 @@ from .configuration import Configuration
 from .usergroup_permissions import Permissions
 from .fetch_index import check_response
 
-logger = logging.getLogger()
-
 
 class PermissionSyncDisabledException(Exception):
     """Exception raised when permission sync is disabled, but expected to be enabled.
@@ -42,7 +40,7 @@ class SyncUserPermission:
     It can be used to run the job that will periodically sync permissions
     from Sharepoint Server to Elastic Enteprise Search."""
     def __init__(self, data):
-        logger.info("Initializing the Permission Indexing class")
+        logging.info("Initializing the Permission Indexing class")
         self.data = data
         self.ws_host = data.get("enterprise_search.host_url")
         self.ws_token = data.get("workplace_search.access_token")
@@ -51,9 +49,9 @@ class SyncUserPermission:
         self.objects = data.get("objects")
         self.site_collections = data.get("sharepoint.site_collections")
         self.enable_permission = data.get("enable_document_permission")
-        self.checkpoint = Checkpoint(logger, data)
-        self.sharepoint_client = SharePoint(logger)
-        self.permissions = Permissions(logger, self.sharepoint_client)
+        self.checkpoint = Checkpoint(data)
+        self.sharepoint_client = SharePoint()
+        self.permissions = Permissions(self.sharepoint_client)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
 
@@ -66,7 +64,7 @@ class SyncUserPermission:
             rel_url = f"{self.sharepoint_host}sites/{collection}/_api/web/siteusers"
             response = self.sharepoint_client.get(rel_url, "?", "permission_users")
             if not response:
-                logger.error("Could not fetch the SharePoint users")
+                logging.error("Could not fetch the SharePoint users")
                 continue
             users, _ = check_response(response.json(), "Could not fetch the SharePoint users.", "Error while parsing the response from url.", "sharepoint_users")
 
@@ -105,13 +103,13 @@ class SyncUserPermission:
                             "permissions": permission_list
                         },
                     )
-                    logger.info(
+                    logging.info(
                         "Successfully indexed the permissions for user %s to the workplace" % (
                             user_name
                         )
                     )
                 except Exception as exception:
-                    logger.exception(
+                    logging.exception(
                         "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
                             user_name, exception
                         )
@@ -147,13 +145,13 @@ class SyncUserPermission:
 def start():
     """ Runs the permission indexing logic regularly after a given interval
         or puts the connector to sleep"""
-    logger.info("Starting the permission indexing..")
-    config = Configuration("sharepoint_connector_config.yml", logger)
+    logging.info("Starting the permission indexing..")
+    config = Configuration("sharepoint_connector_config.yml")
 
     while True:
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
-            logger.info('Exiting as the enable permission flag is set to False')
+            logging.info('Exiting as the enable permission flag is set to False')
             raise PermissionSyncDisabledException
         permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()
@@ -162,9 +160,9 @@ def start():
             sync_permission_interval = int(
                 config.get_value('sync_permission_interval'))
         except Exception as exception:
-            logger.warning('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
+            logging.warning('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
                 sync_permission_interval, exception))
 
         # TODO: need to use schedule instead of time.sleep
-        logger.info('Sleeping..')
+        logging.info('Sleeping..')
         time.sleep(sync_permission_interval * 60)
