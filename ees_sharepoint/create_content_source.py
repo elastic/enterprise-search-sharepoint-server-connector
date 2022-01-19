@@ -13,10 +13,10 @@ in Elastic Enterprise Search"""
 
 import argparse
 import getpass
-import logging
 
 from elastic_enterprise_search import WorkplaceSearch
 
+from .log import logger
 from .configuration import Configuration
 
 
@@ -74,7 +74,7 @@ def start():
         )
 
         content_source_id = resp.get('id')
-        logging.info(
+        logger.info(
             f"Created ContentSource with ID {content_source_id}. You may now begin indexing with content-source-id= {content_source_id}")
     except Exception as exception:
-        logging.error("Could not create a content source, Error %s" % (exception))
+        logger.error("Could not create a content source, Error %s" % (exception))

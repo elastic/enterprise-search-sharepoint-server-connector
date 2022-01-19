@@ -11,10 +11,10 @@ Server and load these permissions to Enterprise Search."""
 import time
 import os
 import csv
-import logging
 
 from elastic_enterprise_search import WorkplaceSearch
 
+from .log import logger
 from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
@@ -40,7 +40,7 @@ class SyncUserPermission:
     It can be used to run the job that will periodically sync permissions
     from Sharepoint Server to Elastic Enteprise Search."""
     def __init__(self, data):
-        logging.info("Initializing the Permission Indexing class")
+        logger.info("Initializing the Permission Indexing class")
         self.data = data
         self.ws_host = data.get("enterprise_search.host_url")
         self.ws_token = data.get("workplace_search.access_token")
@@ -64,7 +64,7 @@ class SyncUserPermission:
             rel_url = f"{self.sharepoint_host}sites/{collection}/_api/web/siteusers"
             response = self.sharepoint_client.get(rel_url, "?", "permission_users")
             if not response:
-                logging.error("Could not fetch the SharePoint users")
+                logger.error("Could not fetch the SharePoint users")
                 continue
             users, _ = check_response(response.json(), "Could not fetch the SharePoint users.", "Error while parsing the response from url.", "sharepoint_users")
 
@@ -103,13 +103,13 @@ class SyncUserPermission:
                             "permissions": permission_list
                         },
                     )
-                    logging.info(
+                    logger.info(
                         "Successfully indexed the permissions for user %s to the workplace" % (
                             user_name
                         )
                     )
                 except Exception as exception:
-                    logging.exception(
+                    logger.exception(
                         "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
                             user_name, exception
                         )
@@ -145,13 +145,13 @@ class SyncUserPermission:
 def start():
     """ Runs the permission indexing logic regularly after a given interval
         or puts the connector to sleep"""
-    logging.info("Starting the permission indexing..")
+    logger.info("Starting the permission indexing..")
     config = Configuration("sharepoint_connector_config.yml")
 
     while True:
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
-            logging.info('Exiting as the enable permission flag is set to False')
+            logger.info('Exiting as the enable permission flag is set to False')
             raise PermissionSyncDisabledException
         permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()
@@ -160,9 +160,9 @@ def start():
             sync_permission_interval = int(
                 config.get_value('sync_permission_interval'))
         except Exception as exception:
-            logging.warning('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
+            logger.warning('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
                 sync_permission_interval, exception))
 
         # TODO: need to use schedule instead of time.sleep
-        logging.info('Sleeping..')
+        logger.info('Sleeping..')
         time.sleep(sync_permission_interval * 60)

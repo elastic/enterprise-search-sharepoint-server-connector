@@ -9,10 +9,10 @@ This module can be used to read and validate configuration file that defines
 the settings of the Sharepoint Server connector."""
 
 import yaml
-import logging
 from yaml.error import YAMLError
 from cerberus import Validator
 
+from .log import logger
 from .schema import schema
 from .util import Singleton
 
@@ -45,12 +45,12 @@ class Configuration(metaclass=Singleton):
                 self.__configurations = yaml.safe_load(stream)
         except YAMLError as exception:
             if hasattr(exception, 'problem_mark'):
-                logging.exception(
+                logger.exception(
                     f"""Error while reading the configurations from {file_name} file \
                     at line {exception.problem_mark.line}."""
                 )
             else:
-                logging.exception(
+                logger.exception(
                     f"""Something went wrong while parsing yaml file {file_name}. \
                     Error: {exception}"""
                 )
@@ -62,13 +62,13 @@ class Configuration(metaclass=Singleton):
 
     def validate(self):
         """Validates each property defined in the yaml configuration file"""
-        logging.info("Validating the configuration parameters")
+        logger.info("Validating the configuration parameters")
         validator = Validator(schema)
         validator.validate(self.__configurations, schema)
         if validator.errors:
-            logging.error(f"Error while validating the config. Errors: {validator.errors}")
+            logger.error(f"Error while validating the config. Errors: {validator.errors}")
             raise ConfigurationInvalidException(validator.errors)
-        logging.info("Successfully validated the config file")
+        logger.info("Successfully validated the config file")
         return validator.document
 
     def get_value(self, key):

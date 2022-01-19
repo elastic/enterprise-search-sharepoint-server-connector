@@ -8,9 +8,9 @@
 It can be used to fetch user permissions from Sharepoint Server
 or clean permissions in Elastic Enterprise Search"""
 
-import logging
-
 from elastic_enterprise_search import WorkplaceSearch
+
+from .log import logger
 
 SITES = "sites"
 LISTS = "lists"
@@ -32,7 +32,7 @@ class Permissions:
             Returns:
                 Response of the GET call
         """
-        logging.info("Fetching the user roles for key: %s" % (key))
+        logger.info("Fetching the user roles for key: %s" % (key))
         maps = {
             SITES: "_api/web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
             LISTS: f"_api/web/lists(guid\'{list_id}\')/roleassignments?$expand=Member/users,RoleDefinitionBindings",
@@ -58,7 +58,7 @@ class Permissions:
             )
 
             if user_permission:
-                logging.info("Removing the permissions from the workplace...")
+                logger.info("Removing the permissions from the workplace...")
                 permission_list = user_permission['results']
                 for permission in permission_list:
                     ws_client.remove_user_permissions(
@@ -69,15 +69,15 @@ class Permissions:
                             "permissions": permission['permissions']
                         }
                     )
-                logging.info("Successfully removed the permissions from the workplace.")
+                logger.info("Successfully removed the permissions from the workplace.")
         except Exception as exception:
-            logging.exception("Error while removing the permissions from the workplace. Error: %s" % exception)
+            logger.exception("Error while removing the permissions from the workplace. Error: %s" % exception)
 
     def fetch_groups(self, rel_url, userid):
         """ Invokes GET calls to fetch the group roles for a user
             :param rel_url: relative url to the sharepoint farm
             :param userid: user id for fetching the roles
         """
-        logging.info("Fetching the group roles for userid: %s" % (userid))
+        logger.info("Fetching the group roles for userid: %s" % (userid))
         return self.sharepoint_client.get(
             rel_url, f"_api/web/GetUserById({userid})/groups", "permission_groups")

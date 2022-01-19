@@ -14,7 +14,8 @@ so that later next sync can continue from that place.
 """
 import os
 import json
-import logging
+
+from .log import logger
 
 CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "checkpoint.json")
 
@@ -33,13 +34,13 @@ class Checkpoint:
         checkpoint details from the configuration file.
         :param collection: collection name
         :param current_time: current time"""
-        logging.info(
+        logger.info(
             "Fetching the checkpoint details from the checkpoint file: %s"
             % CHECKPOINT_PATH
         )
 
         if os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0:
-            logging.info(
+            logger.info(
                 "Checkpoint file exists and has contents, hence considering the checkpoint time instead of start_time and end_time"
             )
             with open(CHECKPOINT_PATH) as checkpoint_store:
@@ -47,7 +48,7 @@ class Checkpoint:
                     checkpoint_list = json.load(checkpoint_store)
 
                     if not checkpoint_list.get(collection):
-                        logging.info(
+                        logger.info(
                             f"""Checkpoint file is present but does not contain start_time \
                             for the collection #{collection}. Using start_time and end_time \
                             from the configuration file instead of the last successful fetch time"""
@@ -58,25 +59,25 @@ class Checkpoint:
                         start_time = checkpoint_list.get(collection)
                         end_time = current_time
                 except ValueError as exception:
-                    logging.exception(
+                    logger.exception(
                         "Error while parsing the json file of the checkpoint store from path: %s. Error: %s"
                         % (CHECKPOINT_PATH, exception)
                     )
-                    logging.info(
+                    logger.info(
                         "Considering the start_time and end_time from the configuration file"
                     )
                     start_time = self.config.get_value("start_time")
                     end_time = self.config.get_value("end_time")
 
         else:
-            logging.info(
+            logger.info(
                 "Checkpoint file does not exist at %s, considering the start_time and end_time from the configuration file"
                 % CHECKPOINT_PATH
             )
             start_time = self.config.get_value("start_time")
             end_time = self.config.get_value("end_time")
 
-        logging.info(
+        logger.info(
             "Contents of the start_time: %s and end_time: %s for collection %s",
             start_time,
             end_time,
@@ -90,7 +91,7 @@ class Checkpoint:
         :param collection: collection name
         :param current_time: current time"""
         if os.path.exists(CHECKPOINT_PATH) and os.path.getsize(CHECKPOINT_PATH) > 0:
-            logging.info(
+            logger.info(
                 f"""Setting the checkpoint contents: {current_time} \
                     for the collection {collection} \
                     to the checkpoint path:{CHECKPOINT_PATH}"""
@@ -100,7 +101,7 @@ class Checkpoint:
                     checkpoint_list = json.load(checkpoint_store)
                     checkpoint_list[collection] = current_time
                 except ValueError as exception:
-                    logging.exception(
+                    logger.exception(
                         "Error while parsing the json file of the checkpoint store from path: %s. Error: %s"
                         % (CHECKPOINT_PATH, exception)
                     )
@@ -110,7 +111,7 @@ class Checkpoint:
                 checkpoint_time = self.config.get_value("end_time")
             else:
                 checkpoint_time = current_time
-            logging.info(
+            logger.info(
                 "Setting the checkpoint contents: %s for the collection %s to the checkpoint path:%s"
                 % (checkpoint_time, collection, CHECKPOINT_PATH)
             )
@@ -120,9 +121,9 @@ class Checkpoint:
             try:
                 json.dump(checkpoint_list, checkpoint_store, indent=4)
             except ValueError as exception:
-                logging.exception(
+                logger.exception(
                     "Error while updating the existing checkpoint json file. Adding the new content directly instead of updating. Error: %s"
                     % exception
                 )
 
-        logging.info("Successfully saved the checkpoint")
+        logger.info("Successfully saved the checkpoint")
