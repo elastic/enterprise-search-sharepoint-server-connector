@@ -10,7 +10,7 @@ or clean permissions in Elastic Enterprise Search"""
 
 from elastic_enterprise_search import WorkplaceSearch
 
-from .log import logger
+from .util import logger
 
 SITES = "sites"
 LISTS = "lists"

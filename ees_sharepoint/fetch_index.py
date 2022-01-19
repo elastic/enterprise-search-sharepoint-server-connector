@@ -20,7 +20,7 @@ from dateutil.parser import parse
 from elastic_enterprise_search import WorkplaceSearch
 from tika.tika import TikaException
 
-from .log import logger
+from .util import logger
 from .sharepoint_utils import encode
 from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
@@ -68,7 +68,7 @@ def check_response(response, error_message, exception_message, param_name):
 class FetchIndex:
     """This class allows ingesting data from Sharepoint Server to Elastic Enterprise Search."""
     def __init__(self, config, start_time, end_time):
-        logger.info("Initializing the Indexing class")
+        logger.debug("Initializing the Indexing class")
         self.is_error = False
         self.ws_host = config.get_value("enterprise_search.host_url")
         self.ws_token = config.get_value("workplace_search.access_token")

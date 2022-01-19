@@ -11,7 +11,7 @@ import requests
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
 
-from .log import logger
+from .util import logger
 from .configuration import Configuration
 
 

@@ -12,7 +12,7 @@ import yaml
 from yaml.error import YAMLError
 from cerberus import Validator
 
-from .log import logger
+from .util import logger
 from .schema import schema
 from .util import Singleton
 
@@ -62,13 +62,13 @@ class Configuration(metaclass=Singleton):
 
     def validate(self):
         """Validates each property defined in the yaml configuration file"""
-        logger.info("Validating the configuration parameters")
+        logger.debug("Validating the configuration parameters")
         validator = Validator(schema)
         validator.validate(self.__configurations, schema)
         if validator.errors:
             logger.error(f"Error while validating the config. Errors: {validator.errors}")
             raise ConfigurationInvalidException(validator.errors)
-        logger.info("Successfully validated the config file")
+        logger.debug("Successfully validated the config file")
         return validator.document
 
     def get_value(self, key):

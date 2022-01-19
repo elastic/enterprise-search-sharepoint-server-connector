@@ -14,7 +14,7 @@ import csv
 
 from elastic_enterprise_search import WorkplaceSearch
 
-from .log import logger
+from .util import logger
 from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
@@ -40,7 +40,7 @@ class SyncUserPermission:
     It can be used to run the job that will periodically sync permissions
     from Sharepoint Server to Elastic Enteprise Search."""
     def __init__(self, data):
-        logger.info("Initializing the Permission Indexing class")
+        logger.debug("Initializing the Permission Indexing class")
         self.data = data
         self.ws_host = data.get("enterprise_search.host_url")
         self.ws_token = data.get("workplace_search.access_token")
@@ -151,7 +151,7 @@ def start():
     while True:
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
-            logger.info('Exiting as the enable permission flag is set to False')
+            logger.warn('Exiting as the enable permission flag is set to False')
             raise PermissionSyncDisabledException
         permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()

@@ -16,7 +16,7 @@ import getpass
 
 from elastic_enterprise_search import WorkplaceSearch
 
-from .log import logger
+from .util import logger
 from .configuration import Configuration
 
 

@@ -15,7 +15,7 @@ import requests
 
 from elastic_enterprise_search import WorkplaceSearch
 
-from .log import logger
+from .util import logger
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
 
@@ -28,7 +28,7 @@ class Deindex:
     It provides methods to remove from Elastic Enterprise Search items, lists and sites
     that were deleted in Sharepoint Server instance."""
     def __init__(self, config):
-        logger.info('Initializing the Indexing class')
+        logger.debug('Initializing the Indexing class')
         self.ws_host = config.get_value('enterprise_search.host_url')
         self.ws_token = config.get_value('workplace_search.access_token')
         self.ws_source = config.get_value('workplace_search.source_id')

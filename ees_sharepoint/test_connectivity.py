@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 import pytest
 from elastic_enterprise_search import WorkplaceSearch
 
-from .log import logger
+from .util import logger
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
 
