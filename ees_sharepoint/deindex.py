@@ -146,35 +146,30 @@ def start():
         or puts the connector to sleep"""
     logger.info('Starting the de-indexing...')
     config = Configuration("sharepoint_connector_config.yml", logger)
-    while True:
-        deindexer = Deindex(config)
-        try:
-            with open(IDS_PATH) as file:
-                ids = json.load(file)
-            for collection in config.get('sharepoint.site_collections'):
-                logger.info(
-                    'Starting the deindexing for site collection: %s' % collection)
-                if ids["delete_keys"].get(collection):
-                    ids = deindexer.deindexing_sites(collection, ids)
-                    ids = deindexer.deindexing_lists(collection, ids)
-                    ids = deindexer.deindexing_items(collection, ids, "list_items")
-                    ids = deindexer.deindexing_items(collection, ids, "drive_items")
-                else:
-                    logger.info("No objects present to be deleted for the collection: %s" % collection)
-            ids["delete_keys"] = {}
-            with open(IDS_PATH, "w") as file:
-                try:
-                    json.dump(ids, file, indent=4)
-                except ValueError as exception:
-                    logger.exception(
-                        "Error while updating the doc_id json file. Error: %s", exception
-                    )
-        except FileNotFoundError as exception:
-            logger.warnig(
-                "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
-                % exception
-            )
-        deindexing_interval = config.get_value('deletion_interval')
-        # TODO: need to use schedule instead of time.sleep
-        logger.info('Sleeping..')
-        time.sleep(deindexing_interval * 60)
+    deindexer = Deindex(config)
+    try:
+        with open(IDS_PATH) as file:
+            ids = json.load(file)
+        for collection in config.get('sharepoint.site_collections'):
+            logger.info(
+                'Starting the deindexing for site collection: %s' % collection)
+            if ids["delete_keys"].get(collection):
+                ids = deindexer.deindexing_sites(collection, ids)
+                ids = deindexer.deindexing_lists(collection, ids)
+                ids = deindexer.deindexing_items(collection, ids, "list_items")
+                ids = deindexer.deindexing_items(collection, ids, "drive_items")
+            else:
+                logger.info("No objects present to be deleted for the collection: %s" % collection)
+        ids["delete_keys"] = {}
+        with open(IDS_PATH, "w") as file:
+            try:
+                json.dump(ids, file, indent=4)
+            except ValueError as exception:
+                logger.exception(
+                    "Error while updating the doc_id json file. Error: %s", exception
+                )
+    except FileNotFoundError as exception:
+        logger.warning(
+            "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
+            % exception
+        )

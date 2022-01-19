@@ -40,14 +40,6 @@ objects:
 start_time : "2021-08-16T13:58:12Z"
 #The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
 end_time : "2021-08-31T13:58:12Z"
-#The interval after which the connector looks for new/updated objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
-indexing_interval: 60
-#The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
-deletion_interval: 60
-#The interval after which the connector looks for new/updated user permissions from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
-sync_permission_interval: 60
-#The interval after which the connector fetches all the objects from sharepoint server from a given start_time in the configuration file to the current time
-full_sync_interval: 2880
 #The level of the logs the user wants to use in the log files. The possible values include: debug, info, warn, error. By default, the level is info
 log_level: info
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism

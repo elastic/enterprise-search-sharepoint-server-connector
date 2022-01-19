@@ -612,96 +612,88 @@ def start(indexing_type):
     logger.info("Starting the indexing..")
     config = Configuration("sharepoint_connector_config.yml", logger)
     is_error_shared = multiprocessing.Manager().list()
-    while True:
-        current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ids_collection = {"global_keys": {}}
-        storage_with_collection = {"global_keys": {}, "delete_keys": {}}
+    current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ids_collection = {"global_keys": {}}
+    storage_with_collection = {"global_keys": {}, "delete_keys": {}}
 
-        if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
-            with open(IDS_PATH) as ids_store:
-                try:
-                    ids_collection = json.load(ids_store)
-                except ValueError as exception:
-                    logger.exception(
-                        "Error while parsing the json file of the ids store from path: %s. Error: %s"
-                        % (IDS_PATH, exception)
-                    )
-
-        storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
-
-        for collection in config.get_value("sharepoint.site_collections"):
-            storage = multiprocessing.Manager().dict({"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}})
-            logger.info(
-                "Starting the data fetching for site collection: %s"
-                % (collection)
-            )
-            check = Checkpoint(logger, config)
-
-            worker_process = config.get_value("worker_process")
-            if indexing_type == "incremental":
-                start_time, end_time = check.get_checkpoint(
-                    collection, current_time)
-            else:
-                start_time = config.get_value("start_time")
-                end_time = current_time
-
-            # partitioning the data collection timeframe in equal parts by worker processes
-            partitions = list(datetime_partitioning(
-                start_time, end_time, worker_process))
-
-            datelist = []
-            for sub in partitions:
-                datelist.append(sub.strftime(DATETIME_FORMAT))
-
-            jobs = {"sites": [], "lists": [], "list_items": [], "drive_items": []}
-            if not ids_collection["global_keys"].get(collection):
-                ids_collection["global_keys"][collection] = {
-                    "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
-
-            parent_site_url = f"/sites/{collection}"
-            sites_path = multiprocessing.Manager().dict()
-            sites_path.update({parent_site_url: end_time})
-            lists_details = multiprocessing.Manager().dict()
-            libraries_details = multiprocessing.Manager().dict()
-            logger.info(
-                "Starting to index all the objects configured in the object field: %s"
-                % (str(config.get_value("objects")))
-            )
-            for num in range(0, worker_process):
-                start_time_partition = datelist[num]
-                end_time_partition = datelist[num + 1]
-
-                logger.info(
-                    "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
-                    % (start_time_partition, end_time_partition)
+    if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
+        with open(IDS_PATH) as ids_store:
+            try:
+                ids_collection = json.load(ids_store)
+            except ValueError as exception:
+                logger.exception(
+                    "Error while parsing the json file of the ids store from path: %s. Error: %s"
+                    % (IDS_PATH, exception)
                 )
 
-                for job_type, job_list in jobs.items():
-                    process = multiprocessing.Process(target=init_multiprocessing, args=(config, start_time_partition, end_time_partition, collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
-                    job_list.append(process)
+    storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
 
-            for job_list in jobs.values():
-                for job in job_list:
-                    job.start()
-                for job in job_list:
-                    job.join()
-            storage_with_collection["global_keys"][collection] = storage.copy()
+    for collection in config.get_value("sharepoint.site_collections"):
+        storage = multiprocessing.Manager().dict({"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}})
+        logger.info(
+            "Starting the data fetching for site collection: %s"
+            % (collection)
+        )
+        check = Checkpoint(logger, config)
 
-            if True in is_error_shared:
-                check.set_checkpoint(collection, start_time, indexing_type)
-            else:
-                check.set_checkpoint(collection, end_time, indexing_type)
-
-        with open(IDS_PATH, "w") as file:
-            try:
-                json.dump(storage_with_collection, file, indent=4)
-            except ValueError as exception:
-                logger.warning(
-                    'Error while adding ids to json file. Error: %s' % (exception))
+        worker_process = config.get_value("worker_process")
         if indexing_type == "incremental":
-            interval = config.get_value("indexing_interval")
+            start_time, end_time = check.get_checkpoint(
+                collection, current_time)
         else:
-            interval = config.get_value("full_sync_interval")
-        # TODO: need to use schedule instead of time.sleep
-        logger.info("Sleeping..")
-        time.sleep(interval * 60)
+            start_time = config.get_value("start_time")
+            end_time = current_time
+
+        # partitioning the data collection timeframe in equal parts by worker processes
+        partitions = list(datetime_partitioning(
+            start_time, end_time, worker_process))
+
+        datelist = []
+        for sub in partitions:
+            datelist.append(sub.strftime(DATETIME_FORMAT))
+
+        jobs = {"sites": [], "lists": [], "list_items": [], "drive_items": []}
+        if not ids_collection["global_keys"].get(collection):
+            ids_collection["global_keys"][collection] = {
+                "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
+
+        parent_site_url = f"/sites/{collection}"
+        sites_path = multiprocessing.Manager().dict()
+        sites_path.update({parent_site_url: end_time})
+        lists_details = multiprocessing.Manager().dict()
+        libraries_details = multiprocessing.Manager().dict()
+        logger.info(
+            "Starting to index all the objects configured in the object field: %s"
+            % (str(config.get_value("objects")))
+        )
+        for num in range(0, worker_process):
+            start_time_partition = datelist[num]
+            end_time_partition = datelist[num + 1]
+
+            logger.info(
+                "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
+                % (start_time_partition, end_time_partition)
+            )
+
+            for job_type, job_list in jobs.items():
+                process = multiprocessing.Process(target=init_multiprocessing, args=(config, start_time_partition, end_time_partition, collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
+                job_list.append(process)
+
+        for job_list in jobs.values():
+            for job in job_list:
+                job.start()
+            for job in job_list:
+                job.join()
+        storage_with_collection["global_keys"][collection] = storage.copy()
+
+        if True in is_error_shared:
+            check.set_checkpoint(collection, start_time, indexing_type)
+        else:
+            check.set_checkpoint(collection, end_time, indexing_type)
+
+    with open(IDS_PATH, "w") as file:
+        try:
+            json.dump(storage_with_collection, file, indent=4)
+        except ValueError as exception:
+            logger.warning(
+                'Error while adding ids to json file. Error: %s' % (exception))
