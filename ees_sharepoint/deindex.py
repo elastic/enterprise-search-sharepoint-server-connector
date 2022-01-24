@@ -15,11 +15,10 @@ import requests
 
 from elastic_enterprise_search import WorkplaceSearch
 
+from .util import logger
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
-from . import logger_manager as log
 
-logger = log.setup_logging('sharepoint_connector_deindex')
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
 
@@ -29,12 +28,12 @@ class Deindex:
     It provides methods to remove from Elastic Enterprise Search items, lists and sites
     that were deleted in Sharepoint Server instance."""
     def __init__(self, config):
-        logger.info('Initializing the Indexing class')
+        logger.debug('Initializing the Indexing class')
         self.ws_host = config.get_value('enterprise_search.host_url')
         self.ws_token = config.get_value('workplace_search.access_token')
         self.ws_source = config.get_value('workplace_search.source_id')
         self.sharepoint_host = config.get_value('sharepoint.host_url')
-        self.sharepoint_client = SharePoint(logger)
+        self.sharepoint_client = SharePoint()
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
 
     def deindexing_items(self, collection, ids, key):
@@ -145,7 +144,7 @@ def start():
     """Runs the de-indexing logic regularly after a given interval
         or puts the connector to sleep"""
     logger.info('Starting the de-indexing...')
-    config = Configuration("sharepoint_connector_config.yml", logger)
+    config = Configuration("sharepoint_connector_config.yml")
     while True:
         deindexer = Deindex(config)
         try:
@@ -170,7 +169,7 @@ def start():
                         "Error while updating the doc_id json file. Error: %s", exception
                     )
         except FileNotFoundError as exception:
-            logger.warnig(
+            logger.warning(
                 "[Fail] File doc_id.json is not present, none of the objects are indexed. Error: %s"
                 % exception
             )

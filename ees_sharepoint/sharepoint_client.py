@@ -7,22 +7,21 @@
 
 import time
 import requests
+
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
 
+from .util import logger
 from .configuration import Configuration
-from .sharepoint_utils import print_and_log
 
 
 class SharePoint:
     """This class encapsulates all module logic."""
-    def __init__(self, logger):
+    def __init__(self):
         configuration = Configuration(
-            file_name="sharepoint_connector_config.yml",
-            logger=logger
+            file_name="sharepoint_connector_config.yml"
         )
 
-        self.logger = logger
         self.retry_count = int(configuration.get_value("retry_count"))
         self.domain = configuration.get_value("sharepoint.domain")
         self.username = configuration.get_value("sharepoint.username")
@@ -78,18 +77,12 @@ class SharePoint:
 
                     if response.status_code >= 400 and response.status_code < 500:
                         if not (param_name == 'deindex' and response.status_code == 404):
-                            print_and_log(
-                                self.logger,
-                                "exception",
-                                "Error: %s. Error while fetching from the sharepoint, url: %s."
-                                % (response.reason, url)
+                            logger.exception(
+                                f"Error: {response.reason}. Error while fetching from the sharepoint, url: {url}."
                             )
                         return response
-                    print_and_log(
-                        self.logger,
-                        "error",
-                        "Error while fetching from the sharepoint, url: %s. Retry Count: %s. Error: %s"
-                        % (url, retry, response.reason)
+                    logger.error(
+                        f"Error while fetching from the sharepoint, url: {url}. Retry Count: {retry}. Error: {response.reason}"
                     )
                     # This condition is to avoid sleeping for the last time
                     if retry < self.retry_count:
@@ -98,11 +91,8 @@ class SharePoint:
                     paginate_query = None
                     continue
                 except RequestException as exception:
-                    print_and_log(
-                        self.logger,
-                        "exception",
-                        "Error while fetching from the sharepoint, url: %s. Retry Count: %s. Error: %s"
-                        % (url, retry, exception)
+                    logger.exception(
+                        f"Error while fetching from the sharepoint, url: {url}. Retry Count: {retry}. Error: {response.reason}"
                     )
                     # This condition is to avoid sleeping for the last time
                     if retry < self.retry_count:

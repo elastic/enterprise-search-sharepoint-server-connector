@@ -15,19 +15,16 @@ from urllib.parse import urljoin
 import pytest
 from elastic_enterprise_search import WorkplaceSearch
 
+from .util import logger
 from .sharepoint_client import SharePoint
-from . import logger_manager as log
 from .configuration import Configuration
-from .sharepoint_utils import print_and_log
-
-logger = log.setup_logging("sharepoint_connector_test")
 
 
 @pytest.fixture(name="settings")
 def fixture_settings():
     """This function loads config from the file and returns it along with retry_count setting."""
     configuration = Configuration(
-        file_name="sharepoint_connector_config.yml", logger=logger
+        file_name="sharepoint_connector_config.yml"
     )
     return configuration, configuration.get_value("retry_count")
 
@@ -37,7 +34,7 @@ def test_sharepoint(settings):
     """ Tests the connection to the sharepoint server by calling a basic get request to fetch sites in a collection and logs proper messages"""
     configs, _ = settings
     logger.info("Starting SharePoint connectivity tests..")
-    sharepoint_client = SharePoint(logger)
+    sharepoint_client = SharePoint()
     collection = configs.get_value("sharepoint.site_collections")[0]
     response = sharepoint_client.get(urljoin(configs.get_value(
         "sharepoint.host_url"), f"/sites/{collection}/_api/web/webs"), query="?", param_name="sites")
@@ -73,15 +70,8 @@ def test_workplace(settings):
                 assert True
                 break
         except Exception as exception:
-            print_and_log(
-                logger,
-                "exception",
-                "[Fail] Error while connecting to the workplace host %s. Retry Count: %s. Error: %s"
-                % (
-                    enterprise_search_host,
-                    retry,
-                    exception,
-                ),
+            logger.exception(
+                f"[Fail] Error while connecting to the workplace host {enterprise_search_host}. Retry Count: {retry}. Error: {exception}"
             )
             # This condition is to avoid sleeping for the last time
             if retry < retry_count:
@@ -123,15 +113,8 @@ def test_ingestion(settings):
                 "Successfully indexed a dummy document with id 1234 in the Workplace")
             break
         except Exception as exception:
-            print_and_log(
-                logger,
-                "exception",
-                "[Fail] Error while ingesting document to the workplace host %s. Retry Count: %s. Error: %s"
-                % (
-                    enterprise_search_host,
-                    retry,
-                    exception,
-                ),
+            logger.exception(
+                f"[Fail] Error while ingesting document to the workplace host {enterprise_search_host}. Retry Count: {retry}. Error: {exception}"
             )
             # This condition is to avoid sleeping for the last time
             if retry < retry_count:
@@ -164,15 +147,8 @@ def test_ingestion(settings):
                     assert True
                     break
             except Exception as exception:
-                print_and_log(
-                    logger,
-                    "exception",
-                    "[Fail] Error while deleting document id 1234 from the workplace host %s. Retry Count: %s. Error: %s"
-                    % (
-                        enterprise_search_host,
-                        retry,
-                        exception,
-                    ),
+                logger.exception(
+                    f"[Fail] Error while deleting document id 1234 from the workplace host {enterprise_search_host}. Retry Count: {retry}. Error: {exception}"
                 )
                 # This condition is to avoid sleeping for the last time
                 if retry < retry_count:

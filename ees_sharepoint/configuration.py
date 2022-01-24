@@ -12,8 +12,8 @@ import yaml
 from yaml.error import YAMLError
 from cerberus import Validator
 
+from .util import logger
 from .schema import schema
-from .sharepoint_utils import print_and_log
 from .util import Singleton
 
 
@@ -37,25 +37,20 @@ class Configuration(metaclass=Singleton):
 
     __configurations = {}
 
-    def __init__(self, file_name, logger=None):
+    def __init__(self, file_name):
         self.file_name = file_name
-        self.logger = logger
 
         try:
             with open(file_name) as stream:
                 self.__configurations = yaml.safe_load(stream)
         except YAMLError as exception:
             if hasattr(exception, 'problem_mark'):
-                print_and_log(
-                    self.logger,
-                    "exception",
+                logger.exception(
                     f"""Error while reading the configurations from {file_name} file \
                     at line {exception.problem_mark.line}."""
                 )
             else:
-                print_and_log(
-                    self.logger,
-                    "exception",
+                logger.exception(
                     f"""Something went wrong while parsing yaml file {file_name}. \
                     Error: {exception}"""
                 )
@@ -67,14 +62,13 @@ class Configuration(metaclass=Singleton):
 
     def validate(self):
         """Validates each property defined in the yaml configuration file"""
-        self.logger.info("Validating the configuration parameters")
+        logger.debug("Validating the configuration parameters")
         validator = Validator(schema)
         validator.validate(self.__configurations, schema)
         if validator.errors:
-            print_and_log(self.logger, "error", "Error while validating the config. Errors: %s" % (
-                validator.errors))
+            logger.error(f"Error while validating the config. Errors: {validator.errors}")
             raise ConfigurationInvalidException(validator.errors)
-        self.logger.info("Successfully validated the config file")
+        logger.debug("Successfully validated the config file")
         return validator.document
 
     def get_value(self, key):

@@ -20,6 +20,7 @@ from dateutil.parser import parse
 from elastic_enterprise_search import WorkplaceSearch
 from tika.tika import TikaException
 
+from .util import logger
 from .sharepoint_utils import encode
 from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
@@ -27,11 +28,9 @@ from .configuration import Configuration
 from .usergroup_permissions import Permissions
 from .sharepoint_utils import extract
 from . import adapter
-from . import logger_manager as log
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 
-logger = log.setup_logging("sharepoint_connector_index")
 SITE = "site"
 LIST = "list"
 ITEM = "item"
@@ -69,7 +68,7 @@ def check_response(response, error_message, exception_message, param_name):
 class FetchIndex:
     """This class allows ingesting data from Sharepoint Server to Elastic Enterprise Search."""
     def __init__(self, config, start_time, end_time):
-        logger.info("Initializing the Indexing class")
+        logger.debug("Initializing the Indexing class")
         self.is_error = False
         self.ws_host = config.get_value("enterprise_search.host_url")
         self.ws_token = config.get_value("workplace_search.access_token")
@@ -80,9 +79,9 @@ class FetchIndex:
         self.enable_permission = config.get_value("enable_document_permission")
         self.start_time = start_time
         self.end_time = end_time
-        self.checkpoint = Checkpoint(logger, config)
-        self.sharepoint_client = SharePoint(logger)
-        self.permissions = Permissions(logger, self.sharepoint_client)
+        self.checkpoint = Checkpoint(config)
+        self.sharepoint_client = SharePoint()
+        self.permissions = Permissions(self.sharepoint_client)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
 
@@ -110,9 +109,10 @@ class FetchIndex:
             logger.info("Successfully indexed %s %s for %s to the workplace" % (
                 total_documents_indexed, param_name, parent_object))
         except Exception as exception:
-            logger.exception("Error while indexing the %s for %s. Error: %s"
-                             % (param_name, parent_object, exception)
-                             )
+            logger.exception(
+                "Error while indexing the %s for %s. Error: %s"
+                % (param_name, parent_object, exception)
+            )
             self.is_error = True
 
     def get_schema_fields(self, document_name):
@@ -610,7 +610,7 @@ def start(indexing_type):
         :param indexing_type: The type of the indexing i.e. Incremental Sync or Full sync
     """
     logger.info("Starting the indexing..")
-    config = Configuration("sharepoint_connector_config.yml", logger)
+    config = Configuration("sharepoint_connector_config.yml")
     is_error_shared = multiprocessing.Manager().list()
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -635,7 +635,7 @@ def start(indexing_type):
                 "Starting the data fetching for site collection: %s"
                 % (collection)
             )
-            check = Checkpoint(logger, config)
+            check = Checkpoint(config)
 
             worker_process = config.get_value("worker_process")
             if indexing_type == "incremental":

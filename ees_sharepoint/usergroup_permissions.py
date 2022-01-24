@@ -10,6 +10,8 @@ or clean permissions in Elastic Enterprise Search"""
 
 from elastic_enterprise_search import WorkplaceSearch
 
+from .util import logger
+
 SITES = "sites"
 LISTS = "lists"
 LIST_ITEMS = "list_items"
@@ -18,10 +20,8 @@ DRIVE_ITEMS = "drive_items"
 
 class Permissions:
     """This class encapsulates all module logic."""
-    def __init__(self, logger, sharepoint_client):
-        self.logger = logger
+    def __init__(self, sharepoint_client):
         self.sharepoint_client = sharepoint_client
-        self.logger.info("Initilized Permissions class")
 
     def fetch_users(self, key, rel_url, list_id="", item_id=""):
         """ Invokes GET calls to fetch unique permissions assigned to an object
@@ -32,7 +32,7 @@ class Permissions:
             Returns:
                 Response of the GET call
         """
-        self.logger.info("Fetching the user roles for key: %s" % (key))
+        logger.info("Fetching the user roles for key: %s" % (key))
         maps = {
             SITES: "_api/web/roleassignments?$expand=Member/users,RoleDefinitionBindings",
             LISTS: f"_api/web/lists(guid\'{list_id}\')/roleassignments?$expand=Member/users,RoleDefinitionBindings",
@@ -58,7 +58,7 @@ class Permissions:
             )
 
             if user_permission:
-                self.logger.info("Removing the permissions from the workplace...")
+                logger.info("Removing the permissions from the workplace...")
                 permission_list = user_permission['results']
                 for permission in permission_list:
                     ws_client.remove_user_permissions(
@@ -69,15 +69,15 @@ class Permissions:
                             "permissions": permission['permissions']
                         }
                     )
-                self.logger.info("Successfully removed the permissions from the workplace.")
+                logger.info("Successfully removed the permissions from the workplace.")
         except Exception as exception:
-            self.logger.exception("Error while removing the permissions from the workplace. Error: %s" % exception)
+            logger.exception("Error while removing the permissions from the workplace. Error: %s" % exception)
 
     def fetch_groups(self, rel_url, userid):
         """ Invokes GET calls to fetch the group roles for a user
             :param rel_url: relative url to the sharepoint farm
             :param userid: user id for fetching the roles
         """
-        self.logger.info("Fetching the group roles for userid: %s" % (userid))
+        logger.info("Fetching the group roles for userid: %s" % (userid))
         return self.sharepoint_client.get(
             rel_url, f"_api/web/GetUserById({userid})/groups", "permission_groups")

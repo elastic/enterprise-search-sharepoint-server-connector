@@ -16,10 +16,8 @@ import getpass
 
 from elastic_enterprise_search import WorkplaceSearch
 
+from .util import logger
 from .configuration import Configuration
-from . import logger_manager as log
-
-logger = log.setup_logging("sharepoint_connector_bootstrap")
 
 
 def start():
@@ -29,7 +27,7 @@ def start():
     which instance of Elastic Enterprise Search will be used
     to create a Content Source."""
 
-    config = Configuration("sharepoint_connector_config.yml", logger=logger)
+    config = Configuration("sharepoint_connector_config.yml")
     parser = argparse.ArgumentParser(
         description='Create a custom content source.')
     parser.add_argument("--name", required=True, type=str,
@@ -76,7 +74,7 @@ def start():
         )
 
         content_source_id = resp.get('id')
-        print(
+        logger.info(
             f"Created ContentSource with ID {content_source_id}. You may now begin indexing with content-source-id= {content_source_id}")
     except Exception as exception:
-        print("Could not create a content source, Error %s" % (exception))
+        logger.error("Could not create a content source, Error %s" % (exception))

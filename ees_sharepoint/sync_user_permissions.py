@@ -14,14 +14,12 @@ import csv
 
 from elastic_enterprise_search import WorkplaceSearch
 
+from .util import logger
 from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
-from . import logger_manager as log
 from .usergroup_permissions import Permissions
 from .fetch_index import check_response
-
-logger = log.setup_logging("sharepoint_index_permissions")
 
 
 class PermissionSyncDisabledException(Exception):
@@ -42,7 +40,7 @@ class SyncUserPermission:
     It can be used to run the job that will periodically sync permissions
     from Sharepoint Server to Elastic Enteprise Search."""
     def __init__(self, data):
-        logger.info("Initializing the Permission Indexing class")
+        logger.debug("Initializing the Permission Indexing class")
         self.data = data
         self.ws_host = data.get("enterprise_search.host_url")
         self.ws_token = data.get("workplace_search.access_token")
@@ -51,9 +49,9 @@ class SyncUserPermission:
         self.objects = data.get("objects")
         self.site_collections = data.get("sharepoint.site_collections")
         self.enable_permission = data.get("enable_document_permission")
-        self.checkpoint = Checkpoint(logger, data)
-        self.sharepoint_client = SharePoint(logger)
-        self.permissions = Permissions(logger, self.sharepoint_client)
+        self.checkpoint = Checkpoint(data)
+        self.sharepoint_client = SharePoint()
+        self.permissions = Permissions(self.sharepoint_client)
         self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
 
@@ -148,12 +146,12 @@ def start():
     """ Runs the permission indexing logic regularly after a given interval
         or puts the connector to sleep"""
     logger.info("Starting the permission indexing..")
-    config = Configuration("sharepoint_connector_config.yml", logger)
+    config = Configuration("sharepoint_connector_config.yml")
 
     while True:
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
-            logger.info('Exiting as the enable permission flag is set to False')
+            logger.warn('Exiting as the enable permission flag is set to False')
             raise PermissionSyncDisabledException
         permission_indexer = SyncUserPermission(config)
         permission_indexer.sync_permissions()
