@@ -168,11 +168,5 @@ schema = {
     'sharepoint_workplace_user_mapping': {
         'required': False,
         'type': 'string'
-    },
-    'worker_process': {
-        'required': False,
-        'type': 'integer',
-        'default': 40,
-        'min': 1
     }
 }

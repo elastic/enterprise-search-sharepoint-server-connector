@@ -7,7 +7,6 @@
 
 It's possible to run full syncs and incremental syncs with this module."""
 
-import multiprocessing
 import time
 import copy
 import os
@@ -42,7 +41,7 @@ DOCUMENT_SIZE = 100
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
-def check_response(response, error_message, exception_message, param_name):
+def get_results(response, param_name):
     """ Checks the response received from sharepoint server
         :param response: response from the sharepoint client
         :param error_message: error message if not getting the response
@@ -52,24 +51,18 @@ def check_response(response, error_message, exception_message, param_name):
             Parsed response, and is_error flag
     """
     if not response:
-        logger.error(error_message)
-        return (False, True)
+        logger.error(f"Empty response when fetching {param_name}") # TODO: should it be an error?
+        return None
     if param_name == "attachment" and not response.get("d", {}).get("results"):
-        logger.info(error_message)
-        return (False, False)
-    try:
-        response_data = response.get("d", {}).get("results")
-        return (response_data, False)
-    except ValueError as exception:
-        logger.exception("%s Error: %s" % (exception_message, exception))
-        return (False, True)
+        logger.info(f"Failed to fetch attachment") # TODO: not sure if it's the right message
+        return None
+    return response.get("d", {}).get("results")
 
 
 class FetchIndex:
     """This class allows ingesting data from Sharepoint Server to Elastic Enterprise Search."""
     def __init__(self, config, start_time, end_time):
         logger.debug("Initializing the Indexing class")
-        self.is_error = False
         self.ws_host = config.get_value("enterprise_search.host_url")
         self.ws_token = config.get_value("workplace_search.access_token")
         self.ws_source = config.get_value("workplace_search.source_id")
@@ -91,29 +84,22 @@ class FetchIndex:
             :param parent_object: parent of the objects to be indexed
             :param param_name: parameter name whether it is SITES, LISTS LIST_ITEMS OR DRIVE_ITEMS
         """
-        try:
-            if document:
-                total_documents_indexed = 0
-                document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
-                for chunk in document_list:
-                    response = self.ws_client.index_documents(
-                        http_auth=self.ws_token,
-                        content_source_id=self.ws_source,
-                        documents=chunk
-                    )
-                    for each in response['results']:
-                        if not each['errors']:
-                            total_documents_indexed += 1
-                        else:
-                            logger.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
-            logger.info("Successfully indexed %s %s for %s to the workplace" % (
-                total_documents_indexed, param_name, parent_object))
-        except Exception as exception:
-            logger.exception(
-                "Error while indexing the %s for %s. Error: %s"
-                % (param_name, parent_object, exception)
-            )
-            self.is_error = True
+        if document:
+            total_documents_indexed = 0
+            document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
+            for chunk in document_list:
+                response = self.ws_client.index_documents(
+                    http_auth=self.ws_token,
+                    content_source_id=self.ws_source,
+                    documents=chunk
+                )
+                for each in response['results']:
+                    if not each['errors']:
+                        total_documents_indexed += 1
+                    else:
+                        logger.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
+        logger.info("Successfully indexed %s %s for %s to the workplace" % (
+            total_documents_indexed, param_name, parent_object))
 
     def get_schema_fields(self, document_name):
         """ returns the schema of all the include_fields or exclude_fields specified in the configuration file.
@@ -153,13 +139,7 @@ class FetchIndex:
             self.start_time, self.end_time, SITES)
         response = self.sharepoint_client.get(rel_url, query, SITES)
 
-        response_data, self.is_error = check_response(
-            response,
-            "Could not fetch the sites, url: %s" % (rel_url),
-            "Error while parsing the get sites response from url: %s."
-            % (rel_url),
-            SITES,
-        )
+        response_data = get_results(response, SITES)
         if not response_data:
             logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
             return sites
@@ -220,13 +200,7 @@ class FetchIndex:
             response = self.sharepoint_client.get(
                 rel_url, query, LISTS)
 
-            response_data, self.is_error = check_response(
-                response,
-                "Could not fetch the list for site: %s" % (site),
-                "Error while parsing the get list response for site: %s from url: %s."
-                % (site, rel_url),
-                LISTS,
-            )
+            response_data = get_results(response, LISTS)
             if not response_data:
                 logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
                 continue
@@ -305,13 +279,7 @@ class FetchIndex:
                     self.start_time, self.end_time, LIST_ITEMS)
                 response = self.sharepoint_client.get(rel_url, query, LIST_ITEMS)
 
-                response_data, self.is_error = check_response(
-                    response,
-                    "Could not fetch the items for list: %s" % (value[1]),
-                    "Error while parsing the get items response for list: %s from url: %s."
-                    % (value[1], rel_url),
-                    LIST_ITEMS,
-                )
+                response_data = get_results(response, LIST_ITEMS)
                 if not response_data:
                     logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                     continue
@@ -332,8 +300,7 @@ class FetchIndex:
                 new_query = "&" + query.split("?")[1]
                 file_response_data = self.sharepoint_client.get(rel_url, query=new_query, param_name="attachment")
                 if file_response_data:
-                    file_response_data, self.is_error = check_response(file_response_data.json(), "No attachments were found at url %s in the interval: start time: %s and end time: %s" % (
-                        rel_url, self.start_time, self.end_time), "Error while parsing file response for file at url %s." % (rel_url), "attachment")
+                    file_response_data = get_results(file_response_data.json(), "attachment")
 
                 for i, _ in enumerate(response_data):
                     doc = {'type': ITEM}
@@ -403,13 +370,7 @@ class FetchIndex:
                 query = self.sharepoint_client.get_query(
                     self.start_time, self.end_time, DRIVE_ITEMS)
                 response = self.sharepoint_client.get(rel_url, query, DRIVE_ITEMS)
-                response_data, self.is_error = check_response(
-                    response,
-                    "Could not fetch the items for library: %s" % (value[1]),
-                    "Error while parsing the get items response for library: %s from url: %s."
-                    % (value[1], rel_url),
-                    DRIVE_ITEMS,
-                )
+                response_data = get_results(response, DRIVE_ITEMS)
                 if not response_data:
                     logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                     continue
@@ -509,8 +470,7 @@ class FetchIndex:
 
         if not roles:
             return []
-        roles, self.is_error = check_response(roles.json(), "Cannot fetch the roles for the given object %s at url %s" % (
-            key, rel_url), "Error while parsing response for fetch_users for %s at url %s." % (key, rel_url), "roles")
+        roles = get_results(roles.json(), "roles")
 
         for role in roles:
             title = role["Member"]["Title"]
@@ -585,25 +545,6 @@ def datetime_partitioning(start_time, end_time, processes):
     yield end_time
 
 
-def init_multiprocessing(data, start_time, end_time, collection, ids, storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details):
-    """This method initializes the FetchIndex class and kicks-off the multiprocessing. This is a wrapper method added to fix the pickling issue while using multiprocessing in Windows
-            :param data: configuration dictionary
-            :param start_time: start time of the indexing
-            :param end_time: end time of the indexing
-            :param collection: collection name
-            :param ids: id collection of the all the objects
-            :param storage: temporary storage for storing all the documents
-            :is_error_shared: list of all the is_error values
-            :job_type: denotes the type of sharepoint object being fetched in a particular process
-            :parent_site_url: parent site relative path
-            :sites_path: dictionary of site path and it's last updated time
-            :lists_details: dictionary containing list name, list path and id
-            :library_details: dictionary containing library name, library path and id
-        """
-    indexer = FetchIndex(data, start_time, end_time)
-    indexer.indexing(collection, ids, storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details)
-
-
 def start(indexing_type):
     """Runs the indexing logic regularly after a given interval
         or puts the connector to sleep
@@ -611,7 +552,6 @@ def start(indexing_type):
     """
     logger.info("Starting the indexing..")
     config = Configuration("sharepoint_connector_config.yml")
-    is_error_shared = multiprocessing.Manager().list()
     while True:
         current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
         ids_collection = {"global_keys": {}}
@@ -628,69 +568,54 @@ def start(indexing_type):
                     )
 
         storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
+        check = Checkpoint(config)
 
-        for collection in config.get_value("sharepoint.site_collections"):
-            storage = multiprocessing.Manager().dict({"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}})
-            logger.info(
-                "Starting the data fetching for site collection: %s"
-                % (collection)
-            )
-            check = Checkpoint(config)
-
-            worker_process = config.get_value("worker_process")
-            if indexing_type == "incremental":
-                start_time, end_time = check.get_checkpoint(
-                    collection, current_time)
-            else:
-                start_time = config.get_value("start_time")
-                end_time = current_time
-
-            # partitioning the data collection timeframe in equal parts by worker processes
-            partitions = list(datetime_partitioning(
-                start_time, end_time, worker_process))
-
-            datelist = []
-            for sub in partitions:
-                datelist.append(sub.strftime(DATETIME_FORMAT))
-
-            jobs = {"sites": [], "lists": [], "list_items": [], "drive_items": []}
-            if not ids_collection["global_keys"].get(collection):
-                ids_collection["global_keys"][collection] = {
-                    "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
-
-            parent_site_url = f"/sites/{collection}"
-            sites_path = multiprocessing.Manager().dict()
-            sites_path.update({parent_site_url: end_time})
-            lists_details = multiprocessing.Manager().dict()
-            libraries_details = multiprocessing.Manager().dict()
-            logger.info(
-                "Starting to index all the objects configured in the object field: %s"
-                % (str(config.get_value("objects")))
-            )
-            for num in range(0, worker_process):
-                start_time_partition = datelist[num]
-                end_time_partition = datelist[num + 1]
-
+        try:
+            for collection in config.get_value("sharepoint.site_collections"):
+                storage = {"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
                 logger.info(
-                    "Successfully fetched the checkpoint details: start_time: %s and end_time: %s, calling the indexing"
-                    % (start_time_partition, end_time_partition)
+                    "Starting the data fetching for site collection: %s"
+                    % (collection)
                 )
 
-                for job_type, job_list in jobs.items():
-                    process = multiprocessing.Process(target=init_multiprocessing, args=(config, start_time_partition, end_time_partition, collection, ids_collection["global_keys"][collection], storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details))
-                    job_list.append(process)
+                if indexing_type == "incremental":
+                    start_time, end_time = check.get_checkpoint(
+                        collection, current_time)
+                else:
+                    start_time = config.get_value("start_time")
+                    end_time = current_time
 
-            for job_list in jobs.values():
-                for job in job_list:
-                    job.start()
-                for job in job_list:
-                    job.join()
-            storage_with_collection["global_keys"][collection] = storage.copy()
+                if not ids_collection["global_keys"].get(collection):
+                    ids_collection["global_keys"][collection] = {
+                        "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
 
-            if True in is_error_shared:
+                parent_site_url = f"/sites/{collection}"
+                sites_path = {parent_site_url: end_time}
+                lists_details = {}
+                libraries_details = {}
+                logger.info(
+                    "Starting to index all the objects configured in the object field: %s"
+                    % (str(config.get_value("objects")))
+                )
+
+                indexer = FetchIndex(config, start_time, end_time)
+                for job_type in ["sites", "lists", "list_items", "drive_items"]:
+                    indexer.indexing(
+                        collection,
+                        ids_collection["global_keys"][collection],
+                        storage,
+                        job_type,
+                        parent_site_url,
+                        sites_path,
+                        lists_details,
+                        libraries_details
+                    )
+
+                storage_with_collection["global_keys"][collection] = storage.copy()
+
                 check.set_checkpoint(collection, start_time, indexing_type)
-            else:
-                check.set_checkpoint(collection, end_time, indexing_type)
+        except Exception as exception:
+            check.set_checkpoint(collection, end_time, indexing_type)
 
         with open(IDS_PATH, "w") as file:
             try:

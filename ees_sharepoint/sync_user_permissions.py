@@ -19,7 +19,7 @@ from .checkpointing import Checkpoint
 from .sharepoint_client import SharePoint
 from .configuration import Configuration
 from .usergroup_permissions import Permissions
-from .fetch_index import check_response
+from .fetch_index import get_results
 
 
 class PermissionSyncDisabledException(Exception):
@@ -66,7 +66,7 @@ class SyncUserPermission:
             if not response:
                 logger.error("Could not fetch the SharePoint users")
                 continue
-            users, _ = check_response(response.json(), "Could not fetch the SharePoint users.", "Error while parsing the response from url.", "sharepoint_users")
+            users = get_results(response.json(), "sharepoint_users")
 
             for user in users:
                 user_id_collection[user["Title"]] = user["Id"]
@@ -83,7 +83,7 @@ class SyncUserPermission:
             for name, user_id in user_ids[collection].items():
                 response = self.permissions.fetch_groups(rel_url, user_id)
                 if response:
-                    groups, _ = check_response(response.json(), "Could not fetch the SharePoint user groups.", "Error while parsing the response from url.", "user_groups")
+                    groups = get_results(response.json(), "user_groups")
                     if groups:
                         user_group_collection[name] = [group['Title'] for group in groups]
             user_group.update({collection: user_group_collection})
