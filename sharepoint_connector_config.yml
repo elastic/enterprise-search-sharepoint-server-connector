@@ -52,7 +52,5 @@ full_sync_interval: 2880
 log_level: info
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3
-#Number of worker processes to be used for the connector. The ideal value should be equal to the number of CPU cores in the machine
-worker_process: 40
 #the path of csv file containing mapping of sharepoint user ID to Workplace user ID
 sharepoint_workplace_user_mapping: "C:/Users/abc/folder_name/file_name.csv"
