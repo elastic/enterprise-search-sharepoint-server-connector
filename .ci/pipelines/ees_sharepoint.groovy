@@ -12,7 +12,6 @@
       - github:
           repo: enterprise-search-sharepoint-server-2016-connector
           repo-owner: elastic
-          reference-repo: /var/lib/jenkins/.git-references/enterprise-search-sharepoint-server-2016-connector.git
           disable-pr-notifications: true
           branch-discovery: all
           discover-pr-origin: current
