@@ -41,19 +41,17 @@ DOCUMENT_SIZE = 100
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
-def get_results(response, param_name):
-    """ Checks the response received from sharepoint server
+def get_results(response, entity_name):
+    """ Attempts to fetch results from a Sharepoint Server response
         :param response: response from the sharepoint client
-        :param error_message: error message if not getting the response
-        :param exception message: exception message
-        :param param_name: parameter name whether it is SITES, LISTS, LIST_ITEMS OR DRIVE_ITEMS
+        :param entity_name: entity name whether it is SITES, LISTS, LIST_ITEMS OR DRIVE_ITEMS
         Returns:
             Parsed response, and is_error flag
     """
     if not response:
-        logger.error(f"Empty response when fetching {param_name}") # TODO: should it be an error?
+        logger.error(f"Empty response when fetching {entity_name}") # TODO: should it be an error?
         return None
-    if param_name == "attachment" and not response.get("d", {}).get("results"):
+    if entity_name == "attachment" and not response.get("d", {}).get("results"):
         logger.info(f"Failed to fetch attachment") # TODO: not sure if it's the right message
         return None
     return response.get("d", {}).get("results")
