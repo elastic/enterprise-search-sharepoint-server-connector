@@ -1,7 +1,7 @@
 ---
 
 - job:
-    name: enterprise-search-sharepoint-server-2016-connector/linting
+    name: ent-search-connectors/sharepoint-server-2016
     description: "Runs linter against the repository"
     project-type: multibranch
     node: master
