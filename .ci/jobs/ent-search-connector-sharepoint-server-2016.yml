@@ -2,11 +2,11 @@
 
 - job:
     name: ent-search-connectors/sharepoint-server-2016
-    description: "Runs linter against the repository"
+    description: "Runs tests and linters against the repository."
     project-type: multibranch
     node: master
     concurrent: true
-    script-path: .ci/pipelines/linting.groovy
+    script-path: .ci/pipelines/ent-search-connector-sharepoint-server-2016.groovy
     prune-dead-branches: true
     scm:
       - github:
