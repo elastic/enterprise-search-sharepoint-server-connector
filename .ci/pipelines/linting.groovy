@@ -18,9 +18,7 @@ eshPipeline(
             type: 'script',
             label: 'Makefile',
             script: {
-                withMaven {
-                    sh 'make lint'
-                }
+                sh 'make lint'
             },
             match_on_all_branches: true,
         ]
