@@ -12,11 +12,13 @@ PROJECT_DIRECTORY = ees_sharepoint
 .DEFAULT_GOAL = help
 
 help:
-	@echo "make setup - set up the project locally"
+	@echo "make install_locally - install the project into virtual environment for development purposes"
+	@echo "make install_package - install the project for the user"
+	@echo "make uninstall_package - uninstall the project for the user"
 	@echo "make test - run the tests for the project"
 	@echo "make cover - check test coverage for the project"
 	@echo "make lint - run linter against the project"
-	@echo "make clean - remove venv directory from the project"
+	@echo "make clean - remove venv and other temporary files from the project"
 	@echo "make test_connectivity - test connectivity to Sharepoint and Enterprise Search"
 
 .venv_init:
