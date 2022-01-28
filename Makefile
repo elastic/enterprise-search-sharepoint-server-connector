@@ -36,7 +36,7 @@ test: .installed .venv_init
 cover: .installed .venv_init
 	${VENV_DIRECTORY}/bin/pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=80 tests
 
-lint: .installed
+lint: .installed .venv_init
 	${VENV_DIRECTORY}/bin/flake8 ${PROJECT_DIRECTORY}
 
 clean:
