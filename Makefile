@@ -12,27 +12,27 @@ PROJECT_DIRECTORY = ees_sharepoint
 .DEFAULT_GOAL = help
 
 help:
-	@echo "make venv_init - set up and activate venv for the project"
 	@echo "make setup - set up the project locally"
 	@echo "make test - run the tests for the project"
 	@echo "make cover - check test coverage for the project"
 	@echo "make lint - run linter against the project"
 	@echo "make clean - remove venv directory from the project"
 
-.installed:
+.venv_init:
+	${PYTHON} -m venv ${VENV_DIRECTORY}
+	touch .venv_init
+
+.installed: .venv_init
 	${VENV_DIRECTORY}/bin/${PIP} install -r requirements.txt
 	touch .installed
 
-venv_init:
-	${PYTHON} -m venv ${VENV_DIRECTORY}
-
-install_locally: .installed
+install_locally: .installed .venv_init
 	${VENV_DIRECTORY}/bin/${PIP} install .
 
-test: .installed
+test: .installed .venv_init
 	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest
 
-cover: .installed
+cover: .installed .venv_init
 	${VENV_DIRECTORY}/bin/pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=80 tests
 
 lint: .installed
@@ -43,5 +43,6 @@ clean:
 	rm -rf build
 	rm -rf *.egg-info
 	rm -rf .pytest_cache
-	rm .coverage
-	rm .installed
+	rm -f .coverage
+	rm -f .installed
+	rm -f .venv_init
