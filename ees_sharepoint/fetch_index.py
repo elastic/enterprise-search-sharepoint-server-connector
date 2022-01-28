@@ -49,10 +49,10 @@ def get_results(response, entity_name):
             Parsed response, and is_error flag
     """
     if not response:
-        logger.error(f"Empty response when fetching {entity_name}") # TODO: should it be an error?
+        logger.error(f"Empty response when fetching {entity_name}")  # TODO: should it be an error?
         return None
     if entity_name == "attachment" and not response.get("d", {}).get("results"):
-        logger.info(f"Failed to fetch attachment") # TODO: not sure if it's the right message
+        logger.info("Failed to fetch attachment")  # TODO: not sure if it's the right message
         return None
     return response.get("d", {}).get("results")
 
@@ -612,7 +612,7 @@ def start(indexing_type):
                 storage_with_collection["global_keys"][collection] = storage.copy()
 
                 check.set_checkpoint(collection, start_time, indexing_type)
-        except Exception as exception:
+        except Exception:
             check.set_checkpoint(collection, end_time, indexing_type)
 
         with open(IDS_PATH, "w") as file:

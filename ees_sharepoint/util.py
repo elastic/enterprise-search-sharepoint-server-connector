@@ -15,6 +15,7 @@ import logging.config
 
 logger = None
 
+
 def _init_logger():
     global logger
     if logger:
@@ -32,7 +33,9 @@ def _init_logger():
     handler.setLevel(log_level)
     logger.addHandler(handler)
 
+
 _init_logger()
+
 
 class Singleton(type):
     """Singleton class provides a metaclass for Singeton pattern.
