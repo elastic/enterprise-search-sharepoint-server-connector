@@ -3,11 +3,11 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""Cmd module contains entry points for the package.
+"""Cli module contains entry point for the package.
 
-Each endpoint provides a meaningful piece of functionallity
+Endpoint provides a meaningful piece of functionallity
 related to uploading data from Sharepoint Server 2016
-to Elastic Enterprise Search"""
+to Elastic Enterprise Search with subcommands."""
 
 import os
 import sys
