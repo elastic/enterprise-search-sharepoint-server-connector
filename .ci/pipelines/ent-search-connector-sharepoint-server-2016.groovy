@@ -5,20 +5,19 @@
 //
 
 // Loading the shared lib
-@Library(['estc', 'entsearch']) _
+@Library(['apm', 'estc', 'entsearch']) _
 
 eshPipeline(
     timeout: 45,
     project_name: 'Enterprise Search Sharepoint Server 2016 Connector',
     repository: 'enterprise-search-sharepoint-server-2016-connector',
-    stage_name: 'Linting',
     stages: [
         [
             name: 'Make Lint',
             type: 'script',
             label: 'Makefile',
             script: {
-                sh 'make lint'
+                sh 'docker run -v `pwd`:/ci -w=/ci --rm --name jenkins-linter -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 make lint'
             },
             match_on_all_branches: true,
         ]

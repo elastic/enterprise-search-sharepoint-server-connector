@@ -90,7 +90,7 @@ class SharePoint:
                     retry += 1
                     paginate_query = None
                     continue
-                except RequestException as exception:
+                except RequestException:
                     logger.exception(
                         f"Error while fetching from the sharepoint, url: {url}. Retry Count: {retry}. Error: {response.reason}"
                     )
