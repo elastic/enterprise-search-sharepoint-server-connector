@@ -18,7 +18,7 @@ eshPipeline(
             type: 'script',
             label: 'Makefile',
             script: {
-                sh 'make lint'
+                sh 'docker run -v `pwd`:/ci -w=/ci -it --rm --name jenkins-linter -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 make lint'
             },
             match_on_all_branches: true,
         ]
