@@ -12,9 +12,7 @@ import yaml
 from yaml.error import YAMLError
 from cerberus import Validator
 
-from .util import logger
 from .schema import schema
-from .util import Singleton
 
 
 class ConfigurationInvalidException(Exception):
@@ -25,13 +23,27 @@ class ConfigurationInvalidException(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, errors, message="Provided configuration was invalid"):
+    def __init__(self, errors):
+        super().__init__(f"Provided configuration was invalid. Errors: {errors}.")
+
         self.errors = errors
-        self.message = message
-        super().__init__(f"{message}. Errors: {errors}.")
 
 
-class Configuration(metaclass=Singleton):
+class ConfigurationParsingException(Exception):
+    """Exception raised when configuration could not be parsed.
+
+    Attributes:
+        file_name - name of the file that could not be parsed
+    """
+
+    def __init__(self, file_name, inner_exception):
+        super().__init__("Failed to parse configuration file.")
+
+        self.file_name = file_name
+        self.inner_exception = inner_exception
+
+
+class Configuration:
     """Configuration class is responsible for parsing, validating and accessing
     configuration options from connector configuration file."""
 
@@ -44,35 +56,25 @@ class Configuration(metaclass=Singleton):
             with open(file_name) as stream:
                 self.__configurations = yaml.safe_load(stream)
         except YAMLError as exception:
-            if hasattr(exception, 'problem_mark'):
-                logger.exception(
-                    f"""Error while reading the configurations from {file_name} file \
-                    at line {exception.problem_mark.line}."""
-                )
-            else:
-                logger.exception(
-                    f"""Something went wrong while parsing yaml file {file_name}. \
-                    Error: {exception}"""
-                )
+            raise ConfigurationParsingException(file_name, exception)
         self.__configurations = self.validate()
-        # Converting datetime object to string
+
         for date_config in ["start_time", "end_time"]:
             value = self.__configurations[date_config]
             self.__configurations[date_config] = self.__parse_date_config_value(value)
 
     def validate(self):
         """Validates each property defined in the yaml configuration file"""
-        logger.debug("Validating the configuration parameters")
+
         validator = Validator(schema)
         validator.validate(self.__configurations, schema)
         if validator.errors:
-            logger.error(f"Error while validating the config. Errors: {validator.errors}")
             raise ConfigurationInvalidException(validator.errors)
-        logger.debug("Successfully validated the config file")
         return validator.document
 
     def get_value(self, key):
         """Returns a configuration value that matches the key argument"""
+
         return self.__configurations.get(key)
 
     @staticmethod

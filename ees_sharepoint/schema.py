@@ -8,7 +8,7 @@
 import datetime
 
 
-def validate_date_new(input_date):
+def coerce_rfc_3339_date(input_date):
     """This function returns true if its argument is a valid RFC 3339 date."""
     if input_date:
         return datetime.datetime.strptime(input_date, "%Y-%m-%dT%H:%M:%SZ")
@@ -120,14 +120,14 @@ schema = {
         'type': 'datetime',
         'max': datetime.datetime.utcnow(),
         'default': (datetime.datetime.utcnow() - datetime.timedelta(days=180)).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'coerce': validate_date_new
+        'coerce': coerce_rfc_3339_date
     },
     'end_time': {
         'required': False,
         'type': 'datetime',
         'max': datetime.datetime.utcnow(),
         'default': (datetime.datetime.utcnow()).strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'coerce': validate_date_new
+        'coerce': coerce_rfc_3339_date
     },
     'indexing_interval': {
         'required': False,
@@ -157,7 +157,7 @@ schema = {
         'required': False,
         'type': 'string',
         'default': 'info',
-        'allowed': ['debug', 'info', 'warn', 'error']
+        'allowed': ['DEBUG', 'INFO', 'WARN', 'ERROR']
     },
     'retry_count': {
         'required': False,

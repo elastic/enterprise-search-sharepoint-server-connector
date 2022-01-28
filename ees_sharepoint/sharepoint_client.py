@@ -11,21 +11,16 @@ import requests
 from requests.exceptions import RequestException
 from requests_ntlm import HttpNtlmAuth
 
-from .util import logger
-from .configuration import Configuration
-
 
 class SharePoint:
     """This class encapsulates all module logic."""
-    def __init__(self):
-        configuration = Configuration(
-            file_name="sharepoint_connector_config.yml"
-        )
-
-        self.retry_count = int(configuration.get_value("retry_count"))
-        self.domain = configuration.get_value("sharepoint.domain")
-        self.username = configuration.get_value("sharepoint.username")
-        self.password = configuration.get_value("sharepoint.password")
+    def __init__(self, config, logger):
+        self.logger = logger
+        self.retry_count = int(config.get_value("retry_count"))
+        self.host = config.get_value("sharepoint.host_url")
+        self.domain = config.get_value("sharepoint.domain")
+        self.username = config.get_value("sharepoint.username")
+        self.password = config.get_value("sharepoint.password")
 
     def get(self, rel_url, query, param_name):
         """ Invokes a GET call to the Sharepoint server
@@ -49,7 +44,7 @@ class SharePoint:
                 paginate_query = query + f"&$top={top}"
             elif param_name in ["permission_users", "permission_groups", "deindex", "attachment"]:
                 paginate_query = query
-            url = rel_url + paginate_query
+            url = f"{self.host}/{rel_url}{paginate_query}"
             skip += 5000
             retry = 0
             while retry <= self.retry_count:
@@ -77,11 +72,11 @@ class SharePoint:
 
                     if response.status_code >= 400 and response.status_code < 500:
                         if not (param_name == 'deindex' and response.status_code == 404):
-                            logger.exception(
+                            self.logger.exception(
                                 f"Error: {response.reason}. Error while fetching from the sharepoint, url: {url}."
                             )
                         return response
-                    logger.error(
+                    self.logger.error(
                         f"Error while fetching from the sharepoint, url: {url}. Retry Count: {retry}. Error: {response.reason}"
                     )
                     # This condition is to avoid sleeping for the last time
@@ -90,9 +85,9 @@ class SharePoint:
                     retry += 1
                     paginate_query = None
                     continue
-                except RequestException:
-                    logger.exception(
-                        f"Error while fetching from the sharepoint, url: {url}. Retry Count: {retry}. Error: {response.reason}"
+                except RequestException as exception:
+                    self.logger.exception(
+                        f"Error while fetching from the sharepoint, url: {url}. Retry Count: {retry}. Error: {exception}"
                     )
                     # This condition is to avoid sleeping for the last time
                     if retry < self.retry_count:
