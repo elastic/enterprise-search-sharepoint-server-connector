@@ -28,6 +28,9 @@ help:
 	${VENV_DIRECTORY}/bin/${PIP} install -r requirements.txt
 	touch .installed
 
+# install_locally an be used to test the implementation after the changes were made to the module
+# #{VENV_DIRECTORY}/bin will contain a file with name ${PROJECT_DIRECTORY} that is the main
+# executable.
 install_locally: .installed .venv_init
 	${VENV_DIRECTORY}/bin/${PIP} install .
 
@@ -42,6 +45,13 @@ lint: .installed .venv_init
 
 test_connectivity: .installed .venv_init
 	${VENV_DIRECTORY}/bin/pytest ${PROJECT_DIRECTORY}/test_connectivity.py
+
+install_package: .installed
+	${PIP} install --user .
+
+uninstall_package:
+	${PIP} uninstall ${PROJECT_DIRECTORY} -y
+
 
 clean:
 	rm -rf venv
