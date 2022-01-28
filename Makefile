@@ -19,6 +19,7 @@ help:
 	@echo "make clean - remove venv directory from the project"
 
 .venv_init:
+	${PIP} install virtualenv
 	${PYTHON} -m venv ${VENV_DIRECTORY}
 	touch .venv_init
 
@@ -36,7 +37,7 @@ cover: .installed .venv_init
 	${VENV_DIRECTORY}/bin/pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=80 tests
 
 lint: .installed
-	flake8 ${PROJECT_DIRECTORY}
+	${VENV_DIRECTORY}/bin/flake8 ${PROJECT_DIRECTORY}
 
 clean:
 	rm -rf venv
