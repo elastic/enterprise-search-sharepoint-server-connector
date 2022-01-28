@@ -19,22 +19,23 @@ help:
 	@echo "make lint - run linter against the project"
 	@echo "make clean - remove venv directory from the project"
 
+.installed:
+	${VENV_DIRECTORY}/bin/${PIP} install -r requirements.txt
+	touch .installed
+
 venv_init:
 	${PYTHON} -m venv ${VENV_DIRECTORY}
 
-setup:
-	${VENV_DIRECTORY}/bin/${PIP} install -r requirements.txt
-
-install_locally:
+install_locally: .installed
 	${VENV_DIRECTORY}/bin/${PIP} install .
 
-test:
+test: .installed
 	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest
 
-cover:
+cover: .installed
 	${VENV_DIRECTORY}/bin/pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=80 tests
 
-lint:
+lint: .installed
 	flake8 ${PROJECT_DIRECTORY}
 
 clean:
@@ -43,3 +44,4 @@ clean:
 	rm -rf *.egg-info
 	rm -rf .pytest_cache
 	rm .coverage
+	rm .installed
