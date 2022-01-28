@@ -523,9 +523,12 @@ def datetime_partitioning(start_time, end_time, processes):
 
 
 def start(indexing_type, config, logger, workplace_search_client, sharepoint_client):
-    """Runs the indexing logic regularly after a given interval
-        or puts the connector to sleep
+    """Runs the indexing logic
         :param indexing_type: The type of the indexing i.e. incremental or full
+        :param config: instance of Configuration class
+        :param logger: instance of Logger class
+        :param workplace_search_client: instance of WorkplaceSearch
+        :param sharepoint_client: instance of SharePoint
     """
     logger.info(f"Starting the {indexing_type} indexing..")
     current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
