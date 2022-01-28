@@ -54,14 +54,9 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     install_requires=install_requires,
-    data_files=[("config", ["sharepoint_connector_config.yml"])],
+    data_files=[("config", ["config.yml"])],
     entry_points="""
       [console_scripts]
-      bootstrap = ees_sharepoint.cmd:bootstrap
-      test_connectivity = ees_sharepoint.cmd:test_connectivity
-      full_sync = ees_sharepoint.cmd:full_sync
-      incremental_sync = ees_sharepoint.cmd:incremental_sync
-      deletion_sync = ees_sharepoint.cmd:deletion_sync
-      permission_sync = ees_sharepoint.cmd:permission_sync
+      ees_sharepoint = ees_sharepoint.cli:main
       """,
 )

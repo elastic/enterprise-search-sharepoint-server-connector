@@ -3,23 +3,17 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""sync_user_permissions module allows to sync user permissions from Sharepoint Server.
+"""This module allows to run a deletion sync against a Sharepoint Server instance.
 
-This module contains all functions that are needed to load permissions from Sharepoint
-Server and load these permissions to Enterprise Search."""
-
-import time
+It will attempt to remove from Enterprise Search instance the documents
+that have been deleted from the third-party system."""
 import os
 import csv
 
-from elastic_enterprise_search import WorkplaceSearch
-
-from .util import logger
 from .checkpointing import Checkpoint
-from .sharepoint_client import SharePoint
-from .configuration import Configuration
 from .usergroup_permissions import Permissions
 from .fetch_index import get_results
+from ees_sharepoint.base_command import BaseCommand
 
 
 class PermissionSyncDisabledException(Exception):
@@ -30,30 +24,27 @@ class PermissionSyncDisabledException(Exception):
     """
 
     def __init__(self, message="Provided configuration was invalid"):
-        self.message = message
         super().__init__(message)
+        self.message = message
 
 
-class SyncUserPermission:
+class PermissionSyncCommand(BaseCommand):
     """This class contains logic to sync user permissions from Sharepoint Server.
 
     It can be used to run the job that will periodically sync permissions
     from Sharepoint Server to Elastic Enteprise Search."""
-    def __init__(self, data):
-        logger.debug("Initializing the Permission Indexing class")
-        self.data = data
-        self.ws_host = data.get("enterprise_search.host_url")
-        self.ws_token = data.get("workplace_search.access_token")
-        self.ws_source = data.get("workplace_search.source_id")
-        self.sharepoint_host = data.get("sharepoint.host_url")
-        self.objects = data.get("objects")
-        self.site_collections = data.get("sharepoint.site_collections")
-        self.enable_permission = data.get("enable_document_permission")
-        self.checkpoint = Checkpoint(data)
-        self.sharepoint_client = SharePoint()
-        self.permissions = Permissions(self.sharepoint_client)
-        self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
-        self.mapping_sheet_path = data.get("sharepoint_workplace_user_mapping")
+    def __init__(self, args):
+        super().__init__(args)
+
+        config = self.config
+
+        self.ws_source = config.get_value("workplace_search.source_id")
+        self.objects = config.get_value("objects")
+        self.site_collections = config.get_value("sharepoint.site_collections")
+        self.enable_permission = config.get_value("enable_document_permission")
+        self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
+        self.checkpoint = Checkpoint(config, self.logger)
+        self.permissions = Permissions(self.sharepoint_client, self.workplace_search_client, self.logger)
 
     def get_users_id(self):
         """ This method returns the dictionary of dictionaries containing users and their id
@@ -61,12 +52,12 @@ class SyncUserPermission:
         user_ids = {}
         for collection in self.site_collections:
             user_id_collection = {}
-            rel_url = f"{self.sharepoint_host}sites/{collection}/_api/web/siteusers"
+            rel_url = f"sites/{collection}/_api/web/siteusers"
             response = self.sharepoint_client.get(rel_url, "?", "permission_users")
             if not response:
-                logger.error("Could not fetch the SharePoint users")
+                self.logger.error("Could not fetch the SharePoint users")
                 continue
-            users = get_results(response.json(), "sharepoint_users")
+            users = get_results(self.logger, response.json(), "sharepoint_users")
 
             for user in users:
                 user_id_collection[user["Title"]] = user["Id"]
@@ -79,11 +70,11 @@ class SyncUserPermission:
         user_group = {}
         for collection in self.site_collections:
             user_group_collection = {}
-            rel_url = f"{self.sharepoint_host}sites/{collection}/"
+            rel_url = f"sites/{collection}/"
             for name, user_id in user_ids[collection].items():
                 response = self.permissions.fetch_groups(rel_url, user_id)
                 if response:
-                    groups = get_results(response.json(), "user_groups")
+                    groups = get_results(self.logger, response.json(), "user_groups")
                     if groups:
                         user_group_collection[name] = [group['Title'] for group in groups]
             user_group.update({collection: user_group_collection})
@@ -96,20 +87,20 @@ class SyncUserPermission:
         for collection in self.site_collections:
             for user_name, permission_list in permissions[collection].items():
                 try:
-                    self.ws_client.add_user_permissions(
+                    self.workplace_search_client.add_user_permissions(
                         content_source_id=self.ws_source,
                         user=user_name,
                         body={
                             "permissions": permission_list
                         },
                     )
-                    logger.info(
+                    self.logger.info(
                         "Successfully indexed the permissions for user %s to the workplace" % (
                             user_name
                         )
                     )
                 except Exception as exception:
-                    logger.exception(
+                    self.logger.exception(
                         "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
                             user_name, exception
                         )
@@ -136,33 +127,21 @@ class SyncUserPermission:
                 user_names.update({collection: user_name_collection})
             user_groups = self.get_user_groups(user_names)
             # delete all the permissions present in workplace search
-            self.permissions.remove_all_permissions(data=self.data)
+            self.permissions.remove_all_permissions(config=self.config)
             if user_groups:
                 # add all the updated permissions
                 self.workplace_add_permission(user_groups)
 
+    def execute(self):
+        """ Runs the permission indexing logic regularly after a given interval
+            or puts the connector to sleep"""
 
-def start():
-    """ Runs the permission indexing logic regularly after a given interval
-        or puts the connector to sleep"""
-    logger.info("Starting the permission indexing..")
-    config = Configuration("sharepoint_connector_config.yml")
+        logger = self.logger
+        config = self.config
+        logger.info("Starting the permission indexing..")
 
-    while True:
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
             logger.warn('Exiting as the enable permission flag is set to False')
             raise PermissionSyncDisabledException
-        permission_indexer = SyncUserPermission(config)
-        permission_indexer.sync_permissions()
-
-        try:
-            sync_permission_interval = int(
-                config.get_value('sync_permission_interval'))
-        except Exception as exception:
-            logger.warning('Error while converting the parameter sync_permission_interval: %s to integer. Considering the default value as 60 minutes. Error: %s' % (
-                sync_permission_interval, exception))
-
-        # TODO: need to use schedule instead of time.sleep
-        logger.info('Sleeping..')
-        time.sleep(sync_permission_interval * 60)
+        self.sync_permissions()

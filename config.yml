@@ -37,19 +37,11 @@ objects:
         include_fields:
         exclude_fields:
 #The time after which all the objects that are modified or created are fetched from Sharepoint. By default, all the objects present in the SharePoint till the end_time are fetched
-start_time : "2021-08-16T13:58:12Z"
+start_time :
 #The timestamp before which all the updated objects need to be fetched i.e. the connector won’t fetch any object updated/created after the end_time. By default, all the objects updated/added till the current time are fetched
-end_time : "2021-08-31T13:58:12Z"
-#The interval after which the connector looks for new/updated objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
-indexing_interval: 60
-#The interval after which the connector looks for the deleted objects from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
-deletion_interval: 60
-#The interval after which the connector looks for new/updated user permissions from SharePoint. The unit of the interval is minutes. By default, the interval is considered to be 60 minutes
-sync_permission_interval: 60
-#The interval after which the connector fetches all the objects from sharepoint server from a given start_time in the configuration file to the current time
-full_sync_interval: 2880
+end_time :
 #The level of the logs the user wants to use in the log files. The possible values include: debug, info, warn, error. By default, the level is info
-log_level: info
+log_level: INFO
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3
 #the path of csv file containing mapping of sharepoint user ID to Workplace user ID

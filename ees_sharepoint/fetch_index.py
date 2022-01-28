@@ -7,7 +7,6 @@
 
 It's possible to run full syncs and incremental syncs with this module."""
 
-import time
 import copy
 import os
 import re
@@ -16,16 +15,11 @@ from datetime import datetime
 from urllib.parse import urljoin
 from dateutil.parser import parse
 
-from elastic_enterprise_search import WorkplaceSearch
 from tika.tika import TikaException
 
-from .util import logger
-from .sharepoint_utils import encode
 from .checkpointing import Checkpoint
-from .sharepoint_client import SharePoint
-from .configuration import Configuration
 from .usergroup_permissions import Permissions
-from .sharepoint_utils import extract
+from .utils import encode, extract
 from . import adapter
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
@@ -41,16 +35,17 @@ DOCUMENT_SIZE = 100
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
-def get_results(response, entity_name):
+def get_results(logger, response, entity_name):
     """ Attempts to fetch results from a Sharepoint Server response
         :param response: response from the sharepoint client
         :param entity_name: entity name whether it is SITES, LISTS, LIST_ITEMS OR DRIVE_ITEMS
         Returns:
-            Parsed response, and is_error flag
+            Parsed response
     """
     if not response:
         logger.error(f"Empty response when fetching {entity_name}")  # TODO: should it be an error?
         return None
+
     if entity_name == "attachment" and not response.get("d", {}).get("results"):
         logger.info("Failed to fetch attachment")  # TODO: not sure if it's the right message
         return None
@@ -59,22 +54,22 @@ def get_results(response, entity_name):
 
 class FetchIndex:
     """This class allows ingesting data from Sharepoint Server to Elastic Enterprise Search."""
-    def __init__(self, config, start_time, end_time):
-        logger.debug("Initializing the Indexing class")
-        self.ws_host = config.get_value("enterprise_search.host_url")
-        self.ws_token = config.get_value("workplace_search.access_token")
+    def __init__(self, config, logger, workplace_search_client, sharepoint_client, start_time, end_time):
+        self.config = config
+        self.logger = logger
+        self.workplace_search_client = workplace_search_client
+        self.sharepoint_client = sharepoint_client
+
         self.ws_source = config.get_value("workplace_search.source_id")
-        self.sharepoint_host = config.get_value("sharepoint.host_url")
         self.objects = config.get_value("objects")
         self.site_collections = config.get_value("sharepoint.site_collections")
         self.enable_permission = config.get_value("enable_document_permission")
         self.start_time = start_time
         self.end_time = end_time
-        self.checkpoint = Checkpoint(config)
-        self.sharepoint_client = SharePoint()
-        self.permissions = Permissions(self.sharepoint_client)
-        self.ws_client = WorkplaceSearch(self.ws_host, http_auth=self.ws_token)
         self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
+
+        self.checkpoint = Checkpoint(config, logger)
+        self.permissions = Permissions(self.sharepoint_client, self.workplace_search_client, logger)
 
     def index_document(self, document, parent_object, param_name):
         """ This method indexes the documents to the workplace.
@@ -86,8 +81,7 @@ class FetchIndex:
             total_documents_indexed = 0
             document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
             for chunk in document_list:
-                response = self.ws_client.index_documents(
-                    http_auth=self.ws_token,
+                response = self.workplace_search_client.index_documents(
                     content_source_id=self.ws_source,
                     documents=chunk
                 )
@@ -95,8 +89,8 @@ class FetchIndex:
                     if not each['errors']:
                         total_documents_indexed += 1
                     else:
-                        logger.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
-        logger.info("Successfully indexed %s %s for %s to the workplace" % (
+                        self.logger.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
+        self.logger.info("Successfully indexed %s %s for %s to the workplace" % (
             total_documents_indexed, param_name, parent_object))
 
     def get_schema_fields(self, document_name):
@@ -129,22 +123,20 @@ class FetchIndex:
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
-        rel_url = urljoin(
-            self.sharepoint_host, f"{parent_site_url}/_api/web/webs"
-        )
-        logger.info("Fetching the sites detail from url: %s" % (rel_url))
+        rel_url = f"{parent_site_url}/_api/web/webs"
+        self.logger.info("Fetching the sites detail from url: %s" % (rel_url))
         query = self.sharepoint_client.get_query(
             self.start_time, self.end_time, SITES)
         response = self.sharepoint_client.get(rel_url, query, SITES)
 
-        response_data = get_results(response, SITES)
+        response_data = get_results(self.logger, response, SITES)
         if not response_data:
-            logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
+            self.logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
             return sites
-        logger.info(
+        self.logger.info(
             "Successfully fetched and parsed %s sites response from SharePoint" % len(response_data)
         )
-        logger.info("Indexing the sites to the Workplace")
+        self.logger.info("Indexing the sites to the Workplace")
 
         schema = self.get_schema_fields(SITES)
         document = []
@@ -177,18 +169,18 @@ class FetchIndex:
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
-        logger.info("Fetching lists for all the sites")
+        self.logger.info("Fetching lists for all the sites")
         responses = []
         document = []
         if not sites:
-            logger.info("No list was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
+            self.logger.info("No list was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
             return [], []
         schema_list = self.get_schema_fields(LISTS)
         for site, time_modified in sites.items():
             if parse(self.start_time) > parse(time_modified):
                 continue
-            rel_url = urljoin(self.sharepoint_host, f"{site}/_api/web/lists")
-            logger.info(
+            rel_url = f"{site}/_api/web/lists"
+            self.logger.info(
                 "Fetching the lists for site: %s from url: %s"
                 % (site, rel_url)
             )
@@ -198,16 +190,16 @@ class FetchIndex:
             response = self.sharepoint_client.get(
                 rel_url, query, LISTS)
 
-            response_data = get_results(response, LISTS)
+            response_data = get_results(self.logger, response, LISTS)
             if not response_data:
-                logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
+                self.logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
                 continue
-            logger.info(
+            self.logger.info(
                 "Successfully fetched and parsed %s list response for site: %s from SharePoint"
                 % (len(response_data), site)
             )
 
-            base_list_url = urljoin(self.sharepoint_host, f"{site}/Lists/")
+            base_list_url = f"{site}/Lists/"
 
             if index:
                 if not ids["lists"].get(site):
@@ -224,7 +216,7 @@ class FetchIndex:
                         r'[^ \w+]', '', response_data[i]["Title"]))
                     document.append(doc)
                     ids["lists"][site].update({doc["id"]: response_data[i]["Title"]})
-                logger.info(
+                self.logger.info(
                     "Indexing the list for site: %s to the Workplace" % (site)
                 )
 
@@ -253,9 +245,9 @@ class FetchIndex:
         """
         responses = []
         #  here value is a list of url and title
-        logger.info("Fetching all the items for the lists")
+        self.logger.info("Fetching all the items for the lists")
         if not lists:
-            logger.info("No item was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
+            self.logger.info("No item was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
         else:
             for value in lists.values():
                 if not ids["list_items"].get(value[0]):
@@ -264,11 +256,8 @@ class FetchIndex:
             for list_content, value in lists.items():
                 if parse(self.start_time) > parse(value[2]):
                     continue
-                rel_url = urljoin(
-                    self.sharepoint_host,
-                    f"{value[0]}/_api/web/lists(guid'{list_content}')/items",
-                )
-                logger.info(
+                rel_url = f"{value[0]}/_api/web/lists(guid'{list_content}')/items"
+                self.logger.info(
                     "Fetching the items for list: %s from url: %s"
                     % (value[1], rel_url)
                 )
@@ -277,28 +266,26 @@ class FetchIndex:
                     self.start_time, self.end_time, LIST_ITEMS)
                 response = self.sharepoint_client.get(rel_url, query, LIST_ITEMS)
 
-                response_data = get_results(response, LIST_ITEMS)
+                response_data = get_results(self.logger, response, LIST_ITEMS)
                 if not response_data:
-                    logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                    self.logger.info("No item was created for the list %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                     continue
-                logger.info(
+                self.logger.info(
                     "Successfully fetched and parsed %s listitem response for list: %s from SharePoint"
                     % (len(response_data), value[1])
                 )
 
                 list_name = re.sub(r'[^ \w+]', '', value[1])
-                base_item_url = urljoin(self.sharepoint_host,
-                                        f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=")
+                base_item_url = f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID="
                 document = []
                 if not ids["list_items"][value[0]].get(list_content):
                     ids["list_items"][value[0]].update({list_content: []})
-                rel_url = urljoin(
-                    self.sharepoint_host, f'{value[0]}/_api/web/lists(guid\'{list_content}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles')
+                rel_url = f'{value[0]}/_api/web/lists(guid\'{list_content}\')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles'
 
                 new_query = "&" + query.split("?")[1]
                 file_response_data = self.sharepoint_client.get(rel_url, query=new_query, param_name="attachment")
                 if file_response_data:
-                    file_response_data = get_results(file_response_data.json(), "attachment")
+                    file_response_data = get_results(self.logger, file_response_data.json(), "attachment")
 
                 for i, _ in enumerate(response_data):
                     doc = {'type': ITEM}
@@ -309,13 +296,13 @@ class FetchIndex:
                                     'AttachmentFiles']['results'][0]['ServerRelativeUrl']
                                 url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{encode(file_relative_url)}\')/$value"
                                 response = self.sharepoint_client.get(
-                                    urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
+                                    url_s, query='', param_name="attachment")
                                 doc['body'] = {}
                                 if response and response.ok:
                                     try:
                                         doc['body'] = extract(response.content)
                                     except TikaException as exception:
-                                        logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
+                                        self.logger.error('Error while extracting the contents from the attachment, Error %s' % (exception))
 
                                 break
                     for field, response_field in schema_item.items():
@@ -329,7 +316,7 @@ class FetchIndex:
                     if response_data[i].get("GUID") not in ids["list_items"][value[0]][list_content]:
                         ids["list_items"][value[0]][list_content].append(
                             response_data[i].get("GUID"))
-                logger.info(
+                self.logger.info(
                     "Indexing the listitem for list: %s to the Workplace"
                     % (value[1])
                 )
@@ -347,9 +334,9 @@ class FetchIndex:
             :param ids: structure containing id's of all objects
         """
         #  here value is a list of url and title of the library
-        logger.info("Fetching all the files for the library")
+        self.logger.info("Fetching all the files for the library")
         if not libraries:
-            logger.info("No file was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
+            self.logger.info("No file was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
         else:
             schema_drive = self.get_schema_fields(DRIVE_ITEMS)
             for lib_content, value in libraries.items():
@@ -357,22 +344,19 @@ class FetchIndex:
                     continue
                 if not ids["drive_items"].get(value[0]):
                     ids["drive_items"].update({value[0]: {}})
-                rel_url = urljoin(
-                    self.sharepoint_host,
-                    f"{value[0]}/_api/web/lists(guid'{lib_content}')/items?$select=Modified,Id,GUID,File,Folder&$expand=File,Folder",
-                )
-                logger.info(
+                rel_url = f"{value[0]}/_api/web/lists(guid'{lib_content}')/items?$select=Modified,Id,GUID,File,Folder&$expand=File,Folder"
+                self.logger.info(
                     "Fetching the items for libraries: %s from url: %s"
                     % (value[1], rel_url)
                 )
                 query = self.sharepoint_client.get_query(
                     self.start_time, self.end_time, DRIVE_ITEMS)
                 response = self.sharepoint_client.get(rel_url, query, DRIVE_ITEMS)
-                response_data = get_results(response, DRIVE_ITEMS)
+                response_data = get_results(self.logger, response, DRIVE_ITEMS)
                 if not response_data:
-                    logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
+                    self.logger.info("No item was created for the library %s in this interval: start time: %s and end time: %s" % (value[1], self.start_time, self.end_time))
                     continue
-                logger.info(
+                self.logger.info(
                     "Successfully fetched and parsed %s drive item response for library: %s from SharePoint"
                     % (len(response_data), value[1])
                 )
@@ -385,14 +369,13 @@ class FetchIndex:
                         doc = {'type': "file"}
                         file_relative_url = response_data[i]['File']['ServerRelativeUrl']
                         url_s = f"{value[0]}/_api/web/GetFileByServerRelativeUrl(\'{encode(file_relative_url)}\')/$value"
-                        response = self.sharepoint_client.get(
-                            urljoin(self.sharepoint_host, url_s), query='', param_name="attachment")
+                        response = self.sharepoint_client.get(url_s, query='', param_name="attachment")
                         doc['body'] = {}
                         if response and response.ok:
                             try:
                                 doc['body'] = extract(response.content)
                             except TikaException as exception:
-                                logger.error('Error while extracting the contents from the file at %s, Error %s' % (response_data[i].get('Url'), exception))
+                                self.logger.error('Error while extracting the contents from the file at %s, Error %s' % (response_data[i].get('Url'), exception))
                     else:
                         obj_type = 'Folder'
                         doc = {'type': "folder"}
@@ -403,15 +386,15 @@ class FetchIndex:
                     if self.enable_permission is True:
                         doc["_allow_permissions"] = self.index_permissions(
                             key=DRIVE_ITEMS, list_id=lib_content, list_url=value[0], itemid=str(response_data[i].get("ID")))
-                    doc["url"] = urljoin(self.sharepoint_host, response_data[i][obj_type]["ServerRelativeUrl"])
+                    doc["url"] = response_data[i][obj_type]["ServerRelativeUrl"]
                     document.append(doc)
                     if doc['id'] not in ids["drive_items"][value[0]][lib_content]:
                         ids["drive_items"][value[0]][lib_content].append(doc['id'])
                 if document:
-                    logger.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
+                    self.logger.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
                     self.index_document(document, value[1], DRIVE_ITEMS)
                 else:
-                    logger.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
+                    self.logger.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
                         value[1], self.start_time, self.end_time))
 
     def get_roles(self, key, site, list_url, list_id, itemid):
@@ -425,22 +408,22 @@ class FetchIndex:
                 roles: user roles
         """
         if key == SITES:
-            rel_url = urljoin(self.sharepoint_host, site)
+            rel_url = site
             roles = self.permissions.fetch_users(key, rel_url)
 
         elif key == LISTS:
-            rel_url = urljoin(self.sharepoint_host, list_url)
+            rel_url = list_url
             roles = self.permissions.fetch_users(
                 key, rel_url, list_id=list_id
             )
 
         else:
-            rel_url = urljoin(self.sharepoint_host, list_url)
+            rel_url = list_url
             roles = self.permissions.fetch_users(
                 key, rel_url, list_id=list_id, item_id=itemid
             )
 
-        return roles, rel_url
+        return roles
 
     def index_permissions(
         self,
@@ -462,26 +445,25 @@ class FetchIndex:
             Returns:
                 groups: list of users having access to the given object
         """
-        roles, rel_url = self.get_roles(key, site, list_url, list_id, itemid)
+        roles = self.get_roles(key, site, list_url, list_id, itemid)
 
         groups = []
 
         if not roles:
             return []
-        roles = get_results(roles.json(), "roles")
+        roles = get_results(self.logger, roles.json(), "roles")
 
         for role in roles:
             title = role["Member"]["Title"]
             groups.append(title)
         return groups
 
-    def indexing(self, collection, ids, storage, is_error_shared, job_type, parent_site_url, sites_path, lists_details, libraries_details):
+    def indexing(self, collection, ids, storage, job_type, parent_site_url, sites_path, lists_details, libraries_details):
         """This method fetches all the objects from sharepoint server and
             ingests them into the workplace search
             :param collection: collection name
             :param ids: id collection of the all the objects
             :param storage: temporary storage for storing all the documents
-            :is_error_shared: list of all the is_error values
             :job_type: denotes the type of sharepoint object being fetched in a particular process
             :parent_site_url: parent site relative path
             :sites_path: dictionary of site path and it's last updated time
@@ -492,27 +474,24 @@ class FetchIndex:
             sites = self.index_sites(parent_site_url, {}, ids, index=(SITES in self.objects))
             sites_path.update(sites)
         elif job_type == "lists":
-            if not self.is_error:
-                lists, libraries = self.index_lists(sites_path, ids, index=(LISTS in self.objects))
-                lists_details.update(lists)
-                libraries_details.update(libraries)
+            lists, libraries = self.index_lists(sites_path, ids, index=(LISTS in self.objects))
+            lists_details.update(lists)
+            libraries_details.update(libraries)
         elif job_type == "list_items":
-            if LIST_ITEMS in self.objects and not self.is_error:
+            if LIST_ITEMS in self.objects:
                 self.index_items(lists_details, ids)
         else:
-            if DRIVE_ITEMS in self.objects and not self.is_error:
+            if DRIVE_ITEMS in self.objects:
                 self.index_drive_items(libraries_details, ids)
 
-            logger.info(
+            self.logger.info(
                 "Completed fetching all the objects for site collection: %s"
                 % (collection)
             )
 
-            logger.info(
+            self.logger.info(
                 "Saving the checkpoint for the site collection: %s" % (collection)
             )
-        is_error_shared.append(self.is_error)
-        self.is_error = False
         if ids.get(job_type):
             prev_ids = storage[job_type]
             if job_type == 'sites':
@@ -543,88 +522,81 @@ def datetime_partitioning(start_time, end_time, processes):
     yield end_time
 
 
-def start(indexing_type):
+def start(indexing_type, config, logger, workplace_search_client, sharepoint_client):
     """Runs the indexing logic regularly after a given interval
         or puts the connector to sleep
-        :param indexing_type: The type of the indexing i.e. Incremental Sync or Full sync
+        :param indexing_type: The type of the indexing i.e. incremental or full
     """
-    logger.info("Starting the indexing..")
-    config = Configuration("sharepoint_connector_config.yml")
-    while True:
-        current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
-        ids_collection = {"global_keys": {}}
-        storage_with_collection = {"global_keys": {}, "delete_keys": {}}
+    logger.info(f"Starting the {indexing_type} indexing..")
+    current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ids_collection = {"global_keys": {}}
+    storage_with_collection = {"global_keys": {}, "delete_keys": {}}
 
-        if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
-            with open(IDS_PATH) as ids_store:
-                try:
-                    ids_collection = json.load(ids_store)
-                except ValueError as exception:
-                    logger.exception(
-                        "Error while parsing the json file of the ids store from path: %s. Error: %s"
-                        % (IDS_PATH, exception)
-                    )
-
-        storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
-        check = Checkpoint(config)
-
-        try:
-            for collection in config.get_value("sharepoint.site_collections"):
-                storage = {"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
-                logger.info(
-                    "Starting the data fetching for site collection: %s"
-                    % (collection)
-                )
-
-                if indexing_type == "incremental":
-                    start_time, end_time = check.get_checkpoint(
-                        collection, current_time)
-                else:
-                    start_time = config.get_value("start_time")
-                    end_time = current_time
-
-                if not ids_collection["global_keys"].get(collection):
-                    ids_collection["global_keys"][collection] = {
-                        "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
-
-                parent_site_url = f"/sites/{collection}"
-                sites_path = {parent_site_url: end_time}
-                lists_details = {}
-                libraries_details = {}
-                logger.info(
-                    "Starting to index all the objects configured in the object field: %s"
-                    % (str(config.get_value("objects")))
-                )
-
-                indexer = FetchIndex(config, start_time, end_time)
-                for job_type in ["sites", "lists", "list_items", "drive_items"]:
-                    indexer.indexing(
-                        collection,
-                        ids_collection["global_keys"][collection],
-                        storage,
-                        job_type,
-                        parent_site_url,
-                        sites_path,
-                        lists_details,
-                        libraries_details
-                    )
-
-                storage_with_collection["global_keys"][collection] = storage.copy()
-
-                check.set_checkpoint(collection, start_time, indexing_type)
-        except Exception:
-            check.set_checkpoint(collection, end_time, indexing_type)
-
-        with open(IDS_PATH, "w") as file:
+    if (os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0):
+        with open(IDS_PATH) as ids_store:
             try:
-                json.dump(storage_with_collection, file, indent=4)
+                ids_collection = json.load(ids_store)
             except ValueError as exception:
-                logger.warning(
-                    'Error while adding ids to json file. Error: %s' % (exception))
-        if indexing_type == "incremental":
-            interval = config.get_value("indexing_interval")
-        else:
-            interval = config.get_value("full_sync_interval")
-        # TODO: need to use schedule instead of time.sleep
-        logger.info("Sleeping..")
-        time.sleep(interval * 60)
+                logger.exception(
+                    "Error while parsing the json file of the ids store from path: %s. Error: %s"
+                    % (IDS_PATH, exception)
+                )
+
+    storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
+    check = Checkpoint(config, logger)
+
+    try:
+        for collection in config.get_value("sharepoint.site_collections"):
+            storage = {"sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
+            logger.info(
+                "Starting the data fetching for site collection: %s"
+                % (collection)
+            )
+
+            if indexing_type == "incremental":
+                start_time, end_time = check.get_checkpoint(
+                    collection, current_time)
+            else:
+                start_time = config.get_value("start_time")
+                end_time = current_time
+
+            if not ids_collection["global_keys"].get(collection):
+                ids_collection["global_keys"][collection] = {
+                    "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
+
+            parent_site_url = f"/sites/{collection}"
+            sites_path = {parent_site_url: end_time}
+            lists_details = {}
+            libraries_details = {}
+            logger.info(
+                "Starting to index all the objects configured in the object field: %s"
+                % (str(config.get_value("objects")))
+            )
+
+            indexer = FetchIndex(config, logger, workplace_search_client, sharepoint_client, start_time, end_time)
+            for job_type in ["sites", "lists", "list_items", "drive_items"]:
+                logger.info(f"Indexing {job_type}")
+                indexer.indexing(
+                    collection,
+                    ids_collection["global_keys"][collection],
+                    storage,
+                    job_type,
+                    parent_site_url,
+                    sites_path,
+                    lists_details,
+                    libraries_details
+                )
+
+            storage_with_collection["global_keys"][collection] = storage.copy()
+
+            check.set_checkpoint(collection, start_time, indexing_type)
+    except Exception as exception:
+        check.set_checkpoint(collection, end_time, indexing_type)
+        raise exception
+
+    with open(IDS_PATH, "w") as file:
+        try:
+            json.dump(storage_with_collection, file, indent=4)
+        except ValueError as exception:
+            logger.warning(
+                'Error while adding ids to json file. Error: %s' % (exception))

@@ -157,7 +157,7 @@ schema = {
         'required': False,
         'type': 'string',
         'default': 'info',
-        'allowed': ['debug', 'info', 'warn', 'error']
+        'allowed': ['DEBUG', 'INFO', 'WARN', 'ERROR']
     },
     'retry_count': {
         'required': False,
