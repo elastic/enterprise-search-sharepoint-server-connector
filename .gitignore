@@ -153,3 +153,4 @@ cython_debug/
 
 # installation management from Makefile
 .installed
+.venv_init
