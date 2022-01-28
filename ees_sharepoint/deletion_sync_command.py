@@ -138,8 +138,7 @@ class DeletionSyncCommand(BaseCommand):
         return ids
 
     def execute(self):
-        """Runs the de-indexing logic regularly after a given interval
-            or puts the connector to sleep"""
+        """Runs the de-indexing logic"""
         logger = self.logger
         logger.info("Running deletion sync")
 

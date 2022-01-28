@@ -133,8 +133,7 @@ class PermissionSyncCommand(BaseCommand):
                 self.workplace_add_permission(user_groups)
 
     def execute(self):
-        """ Runs the permission indexing logic regularly after a given interval
-            or puts the connector to sleep"""
+        """ Runs the permission indexing logic"""
 
         logger = self.logger
         config = self.config
