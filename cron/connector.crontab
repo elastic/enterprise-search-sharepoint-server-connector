@@ -1,4 +1,0 @@
-0 */2 * * * ees_sharepoint incremental-sync
-0 0 */2 * * ees_sharepoint full-sync
-0 * * * * ees_sharepoint deletion-sync
-*/5 * * * * ees_sharepoint permission-sync

@@ -86,17 +86,17 @@ Running the Connector
 Running a specific functionality as a recurring process
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It's possible to run the connectors as a cron job. A sample crontab file is provided in cron/connector.crontab directory.
-You can add it manually to your crontab or if your system supports cron.d copy or symlink it into /etc/cron.d/ directory.
+It's possible to run the connectors as a cron job. A sample crontab file is provided in `cron/connector.example` file.
+You can edit and then add it manually to your crontab with `crontab -e` or if your system supports cron.d copy or symlink it into /etc/cron.d/ directory.
 
 The connector will emit logs into stdout and stderr, if logs are needed consider simply piping the output of connectors into
-desired file, for example the crontab if you've put config file into /etc/sharepoint-connector/ directory and
-want to have logs in /var/log/sharepoint-connector/ can look like::
+desired file, for example the crontab if you've put config file into `~/.config/sharepoint-connector-config.yml` and
+want to have logs in `~/` can look like::
 
-    0 */2 * * * ees_sharepoint -c /etc/sharepoint-connector/config.yml incremental-sync >> /var/log/sharepoint-connector/incremental-sync.log
-    0 0 */2 * * ees_sharepoint -c /etc/sharepoint-connector/config.yml full-sync >> /var/log/sharepoint-connector/full-sync.log
-    0 * * * * ees_sharepoint -c /etc/sharepoint-connector/config.yml deletion-sync >> /var/log/sharepoint-connector/deletion-sync.log
-    */5 * * * * ees_sharepoint -c /etc/sharepoint-connector/config.yml permission-sync >> /var/log/sharepoint-connector/permission-sync.log
+    0 */2 * * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml incremental-sync >> ~/incremental-sync.log
+    0 0 */2 * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml full-sync >> ~/full-sync.log
+    0 * * * * ees_sharepoint -c  ~/.config/sharepoint-connector-config.yml deletion-sync >> ~/deletion-sync.log
+    */5 * * * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml permission-sync >> ~/permission-sync.log
 
 Indexing
 ========

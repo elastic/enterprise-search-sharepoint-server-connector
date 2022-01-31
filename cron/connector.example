@@ -1,0 +1,4 @@
+0 */2 * * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml incremental-sync >> ~/incremental-sync.log
+0 0 */2 * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml full-sync >> ~/full-sync.log
+0 * * * * ees_sharepoint -c  ~/.config/sharepoint-connector-config.yml deletion-sync >> ~/deletion-sync.log
+*/5 * * * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml permission-sync >> ~/permission-sync.log
