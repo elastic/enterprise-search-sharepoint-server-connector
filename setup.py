@@ -25,9 +25,8 @@ install_requires = [
 
 description = ""
 
-for file_ in ("README", "CHANGELOG"):
-    with open("%s.rst" % file_) as f:
-        description += f.read() + "\n\n"
+with open("README.rst") as f:
+    description += f.read() + "\n\n"
 
 
 classifiers = [
