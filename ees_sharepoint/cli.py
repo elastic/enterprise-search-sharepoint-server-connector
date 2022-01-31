@@ -91,7 +91,7 @@ def main(args=None):
         args.password = getpass.getpass(prompt='Password: ', stream=None)
 
     if not args.config_file:
-        args.config_file = os.path.join(os.path.expanduser('~'), '.local', 'config', 'connector.yml')
+        args.config_file = os.path.join(os.path.expanduser('~'), '.local', 'config', 'sharepoint_server_2016_connector.yml')
 
     run(args)
 
