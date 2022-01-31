@@ -57,7 +57,7 @@ class BaseCommand:
     def workplace_search_client(self):
         """Get the workplace search client instance for the running command.
 
-        Host and access token are taken from configuration file, if
+        Host and api key are taken from configuration file, if
         a user was provided when running command, then basic auth
         will be used instead.
         """
