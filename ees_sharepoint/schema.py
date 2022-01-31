@@ -36,7 +36,7 @@ schema = {
         'required': True,
         'type': 'list'
     },
-    'workplace_search.access_token': {
+    'workplace_search.api_key': {
         'required': True,
         'type': 'string'
     },

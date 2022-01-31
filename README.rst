@@ -29,13 +29,13 @@ can either get it by creating a new [custom API
 source](https://www.elastic.co/guide/en/workplace-search/current/workplace-search-custom-api-sources.html)
 from Workplace Search admin dashboard or you can just bootstrap it using the
 bootstrap.py file. To use bootstrap.py, make sure you have specified
-'enterprise_search.host_url' and 'workplace_search.access_token' in the
+'enterprise_search.host_url' and 'workplace_search.api_key' in the
 sharepoint_connector_config.yml file. Run the bootstrap command ::
 
     python3 bootstrap.py --name <Name of the Content Source> --user <Admin Username>
 
 Here, the parameter 'name' is _required_ while 'user' is _optional_.
-You will be prompted to share the user's password if 'user' parameter was specified above. If the parameter 'user' was not specified, the connector would use 'workplace_search.access_token' specified in the configuration file for bootstrapping the content source.
+You will be prompted to share the user's password if 'user' parameter was specified above. If the parameter 'user' was not specified, the connector would use 'workplace_search.api_key' specified in the configuration file for bootstrapping the content source.
 
 Once the content source is created, the content source ID will be printed on the terminal. You can now move on to modifying the configuration file.
 
@@ -48,7 +48,7 @@ Required fields in the configuration file:
 * sharepoint.client_secret
 * sharepoint.realm
 * sharepoint.host_url
-* workplace_search.access_token
+* workplace_search.api_key
 * workplace_search.source_id
 * enterprise_search.host_url
 * sharepoint.site_collections

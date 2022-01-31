@@ -13,8 +13,8 @@ sharepoint.host_url: http://sharepoint-host:14682/
 sharepoint.site_collections:
     - Connector
 #Workplace Search configuration settings
-#Access token for Workplace search authentication
-workplace_search.access_token: "12345678"
+#Api key for Workplace search authentication
+workplace_search.api_key: "12345678"
 #Source identifier for the custom source created on the workplace search server
 workplace_search.source_id: "12345678"
 #Workplace search server address Example: http://es-host:3002

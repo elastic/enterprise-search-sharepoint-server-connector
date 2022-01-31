@@ -70,7 +70,7 @@ class BaseCommand:
             )
         else:
             return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources", http_auth=self.config.get_value("workplace_search.access_token")
+                f"{host}/api/ws/v1/sources", http_auth=self.config.get_value("workplace_search.api_key")
             )
 
     @cached_property
