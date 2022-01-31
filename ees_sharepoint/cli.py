@@ -71,7 +71,6 @@ def _parser():
     subparsers.add_parser(CMD_FULL_SYNC)
     subparsers.add_parser(CMD_INCREMENTAL_SYNC)
     subparsers.add_parser(CMD_DELETION_SYNC)
-    subparsers.add_parser(CMD_TEST_CONNECTIVITY)
     subparsers.add_parser(CMD_PERMISSION_SYNC)
 
     return parser

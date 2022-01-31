@@ -10,7 +10,6 @@ to Elastic Enterprise Search instance and check if ingestion of
 documents works."""
 
 import time
-from urllib.parse import urljoin
 import logging
 
 import pytest
