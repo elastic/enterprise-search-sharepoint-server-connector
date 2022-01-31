@@ -46,6 +46,10 @@ to the config file you're willing to use, for example::
 
     ees_sharepoint -c ~/server-1-config.yml full-sync
 
+By default the connector will put its default config file into a `config` directory along the executable. To find the config file
+you can run `which ees_sharepoint` to see where the executable of the connector is, then run `cd ../config` and you'll find yourself
+in the directory with a default `config.yml` file.
+
 Bootstrapping
 -------------
 
@@ -93,10 +97,10 @@ The connector will emit logs into stdout and stderr, if logs are needed consider
 desired file, for example the crontab if you've put config file into `~/.config/sharepoint-connector-config.yml` and
 want to have logs in `~/` can look like::
 
-    0 */2 * * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml incremental-sync >> ~/incremental-sync.log
-    0 0 */2 * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml full-sync >> ~/full-sync.log
-    0 * * * * ees_sharepoint -c  ~/.config/sharepoint-connector-config.yml deletion-sync >> ~/deletion-sync.log
-    */5 * * * * ees_sharepoint -c ~/.config/sharepoint-connector-config.yml permission-sync >> ~/permission-sync.log
+    0 */2 * * * ees_sharepoint incremental-sync >> ~/incremental-sync.log
+    0 0 */2 * * ees_sharepoint full-sync >> ~/full-sync.log
+    0 * * * * ees_sharepoint deletion-sync >> ~/deletion-sync.log
+    */5 * * * * ees_sharepoint permission-sync >> ~/permission-sync.log
 
 Indexing
 ========
