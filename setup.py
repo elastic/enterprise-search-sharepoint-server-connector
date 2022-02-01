@@ -53,7 +53,7 @@ setup(
     zip_safe=False,
     classifiers=classifiers,
     install_requires=install_requires,
-    data_files=[("config", ["config.yml"])],
+    data_files=[("config", ["sharepoint_server_2016_connector.yml"])],
     entry_points="""
       [console_scripts]
       ees_sharepoint = ees_sharepoint.cli:main

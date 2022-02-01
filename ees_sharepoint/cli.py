@@ -10,7 +10,6 @@ related to uploading data from Sharepoint Server 2016
 to Elastic Enterprise Search with subcommands."""
 
 import os
-import sys
 import getpass
 from argparse import ArgumentParser
 
@@ -91,7 +90,7 @@ def main(args=None):
         args.password = getpass.getpass(prompt='Password: ', stream=None)
 
     if not args.config_file:
-        args.config_file = os.path.join(sys.prefix, 'config/config.yml')
+        args.config_file = os.path.join(os.path.expanduser('~'), '.local', 'config', 'sharepoint_server_2016_connector.yml')
 
     run(args)
 
