@@ -1,0 +1,4 @@
+0 */2 * * * ees_sharepoint incremental-sync >> ~/incremental-sync.log
+0 0 */2 * * ees_sharepoint full-sync >> ~/full-sync.log
+0 * * * * ees_sharepoint deletion-sync >> ~/deletion-sync.log
+*/5 * * * * ees_sharepoint permission-sync >> ~/permission-sync.log
