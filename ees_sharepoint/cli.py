@@ -10,7 +10,6 @@ related to uploading data from Sharepoint Server 2016
 to Elastic Enterprise Search with subcommands."""
 
 import os
-import sys
 import getpass
 from argparse import ArgumentParser
 
