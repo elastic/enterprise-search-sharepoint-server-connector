@@ -10,7 +10,7 @@ to Elastic Enterprise Search instance and check if ingestion of
 documents works."""
 
 import time
-from urllib.parse import urljoin
+import logging
 
 import pytest
 from elastic_enterprise_search import WorkplaceSearch
@@ -23,20 +23,21 @@ from .configuration import Configuration
 def fixture_settings():
     """This function loads config from the file and returns it along with retry_count setting."""
     configuration = Configuration(
-        file_name="sharepoint_connector_config.yml"
+        file_name="sharepoint_server_2016_connector.yml"
     )
-    return configuration, configuration.get_value("retry_count")
+
+    logger = logging.getLogger("test_connectivity")
+    return configuration, logger
 
 
 @pytest.mark.sharepoint
 def test_sharepoint(settings):
     """ Tests the connection to the sharepoint server by calling a basic get request to fetch sites in a collection and logs proper messages"""
-    configs, _ = settings
+    configs, logger = settings
     print("Starting SharePoint connectivity tests..")
-    sharepoint_client = SharePoint()
+    sharepoint_client = SharePoint(configs, logger)
     collection = configs.get_value("sharepoint.site_collections")[0]
-    response = sharepoint_client.get(urljoin(configs.get_value(
-        "sharepoint.host_url"), f"/sites/{collection}/_api/web/webs"), query="?", param_name="sites")
+    response = sharepoint_client.get(f"/sites/{collection}/_api/web/webs", query="?", param_name="sites")
     if not response:
         assert False, "Error while connecting to the Sharepoint server at %s" % (
             configs.get_value("sharepoint.host_url"))
@@ -48,8 +49,9 @@ def test_sharepoint(settings):
 @pytest.mark.workplace
 def test_workplace(settings):
     """ Tests the connection to the Enterprise search host"""
-    configs, retry_count = settings
+    configs, _ = settings
     print("Starting Workplace connectivity tests..")
+    retry_count = configs.get_value("retry_count")
     enterprise_search_host = configs.get_value("enterprise_search.host_url")
     retry = 0
     while retry <= retry_count:
@@ -86,7 +88,8 @@ def test_workplace(settings):
 @pytest.mark.ingestion
 def test_ingestion(settings):
     """ Tests the successful ingestion and deletion of a sample document to the Workplace search"""
-    configs, retry_count = settings
+    configs, logger = settings
+    retry_count = configs.get_value("retry_count")
     enterprise_search_host = configs.get_value("enterprise_search.host_url")
     print("Starting Workplace ingestion tests..")
     document = [

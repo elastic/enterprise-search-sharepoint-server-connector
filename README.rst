@@ -100,18 +100,16 @@ De-indexing
 
 When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the _deindex.py_ file for deleting the records from Workplace Search.
 
-Testing
-=======
+Testing connectivity
+====================
 
-You can run the automated tests using pytest to check the connectivity with Sharepoint and Workplace Search server.
-The automated test can be run in three different modes:
-
-* workplace : check connectivity with Workplace Search
-* sharepoint : check connectivity with Sharepoint
-* ingestion : test the basic ingestion and deletion to the Workplace Search
+You can check the connectivity with Sharepoint and Workplace Search server using.
 
 Use the following command ::bash
 
-    pytest -m <mode>
+    make test_connectivity
 
-If you do not provide a mode, the connector will run the test for all the modes
+This command will attempt to to:
+* check connectivity with Workplace Search
+* check connectivity with Sharepoint
+* test the basic ingestion and deletion to the Workplace Search

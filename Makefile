@@ -17,6 +17,7 @@ help:
 	@echo "make cover - check test coverage for the project"
 	@echo "make lint - run linter against the project"
 	@echo "make clean - remove venv directory from the project"
+	@echo "make test_connectivity - test connectivity to Sharepoint and Enterprise Search"
 
 .venv_init:
 	${PIP} install virtualenv
@@ -38,6 +39,9 @@ cover: .installed .venv_init
 
 lint: .installed .venv_init
 	${VENV_DIRECTORY}/bin/flake8 ${PROJECT_DIRECTORY}
+
+test_connectivity: .installed .venv_init
+	${VENV_DIRECTORY}/bin/pytest ${PROJECT_DIRECTORY}/test_connectivity.py
 
 clean:
 	rm -rf venv

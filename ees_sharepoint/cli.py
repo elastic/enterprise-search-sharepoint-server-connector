@@ -18,14 +18,12 @@ from .deletion_sync_command import DeletionSyncCommand
 from .full_sync_command import FullSyncCommand
 from .incremental_sync_command import IncrementalSyncCommand
 from .permission_sync_command import PermissionSyncCommand
-from .test_connectivity_command import TestConnectivityCommand
 
 CMD_BOOTSTRAP = 'bootstrap'
 CMD_FULL_SYNC = 'full-sync'
 CMD_INCREMENTAL_SYNC = 'incremental-sync'
 CMD_DELETION_SYNC = 'deletion-sync'
 CMD_PERMISSION_SYNC = 'permission-sync'
-CMD_TEST_CONNECTIVITY = 'test-connectivity'
 
 commands = {
     CMD_BOOTSTRAP: BootstrapCommand,
@@ -33,7 +31,6 @@ commands = {
     CMD_INCREMENTAL_SYNC: IncrementalSyncCommand,
     CMD_DELETION_SYNC: DeletionSyncCommand,
     CMD_PERMISSION_SYNC: PermissionSyncCommand,
-    CMD_TEST_CONNECTIVITY: TestConnectivityCommand
 }
 
 
@@ -74,7 +71,6 @@ def _parser():
     subparsers.add_parser(CMD_FULL_SYNC)
     subparsers.add_parser(CMD_INCREMENTAL_SYNC)
     subparsers.add_parser(CMD_DELETION_SYNC)
-    subparsers.add_parser(CMD_TEST_CONNECTIVITY)
     subparsers.add_parser(CMD_PERMISSION_SYNC)
 
     return parser
