@@ -57,7 +57,7 @@ class BaseCommand:
     def workplace_search_client(self):
         """Get the workplace search client instance for the running command.
 
-        Host and access token are taken from configuration file, if
+        Host and api key are taken from configuration file, if
         a user was provided when running command, then basic auth
         will be used instead.
         """
@@ -70,7 +70,7 @@ class BaseCommand:
             )
         else:
             return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources", http_auth=self.config.get_value("workplace_search.access_token")
+                f"{host}/api/ws/v1/sources", http_auth=self.config.get_value("workplace_search.api_key")
             )
 
     @cached_property

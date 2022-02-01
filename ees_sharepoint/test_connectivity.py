@@ -57,7 +57,7 @@ def test_workplace(settings):
             workplace_search = WorkplaceSearch(
                 enterprise_search_host,
                 http_auth=configs.get_value(
-                    "workplace_search.access_token"
+                    "workplace_search.api_key"
                 ),
             )
             response = workplace_search.get_content_source(
@@ -105,7 +105,7 @@ def test_ingestion(settings):
     while retry <= retry_count:
         try:
             response = workplace_search.index_documents(
-                http_auth=configs.get_value("workplace_search.access_token"), content_source_id=configs.get_value("workplace_search.source_id"),
+                http_auth=configs.get_value("workplace_search.api_key"), content_source_id=configs.get_value("workplace_search.source_id"),
                 documents=document,
             )
             print(
@@ -132,7 +132,7 @@ def test_ingestion(settings):
             try:
                 response = workplace_search.delete_documents(
                     http_auth=configs.get_value(
-                        "workplace_search.access_token"
+                        "workplace_search.api_key"
                     ),
                     content_source_id=configs.get_value(
                         "workplace_search.source_id"
