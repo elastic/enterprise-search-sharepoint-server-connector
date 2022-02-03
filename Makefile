@@ -27,6 +27,7 @@ help:
 	touch .venv_init
 
 .installed: .venv_init
+	${VENV_DIRECTORY}/bin/${PIP} install -U pip
 	${VENV_DIRECTORY}/bin/${PIP} install -r requirements.txt
 	touch .installed
 
