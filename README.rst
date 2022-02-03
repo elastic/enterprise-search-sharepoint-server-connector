@@ -55,8 +55,7 @@ Bootstrapping
 -------------
 
 Before indexing can begin, you need a new content source to index against. You
-can either get it by creating a new [custom API
-source](https://www.elastic.co/guide/en/workplace-search/current/workplace-search-custom-api-sources.html)
+can either get it by creating a new `custom API source <https://www.elastic.co/guide/en/workplace-search/current/workplace-search-custom-api-sources.html>`_
 from Workplace Search admin dashboard or you can just bootstrap it using the
 bootstrap.py file. To use bootstrap.py, make sure you have specified
 'enterprise_search.host_url' and 'workplace_search.api_key' in the
@@ -113,8 +112,8 @@ Full sync ensures indexing occurs from the _start_time_ provided in the configur
 
 Note: Indexing of all the sub sites is guaranteed only in full sync and not in incremental sync due to an issue in SharePoint, i.e. the parent site does not get updated whenever a subsite inside it is modified. Hence, if we create/modify a sub site, the last updated time of parent site is not altered.
 
-The connector inherently uses Tika module for parsing file contents from attachments. [Tika-python](https://github.com/chrismattmann/tika-python) uses Apache Tika REST server. To use this library, you need to have Java 7+ installed on your system as tika-python starts up the Tika REST server in the background.
-Tika Server also detects contents from images by automatically calling Tesseract OCR. To allow Tika to also extract content from images, you need to make sure tesseract is on your path and then restart tika-server in the backgroud(if it is already running), by doing `ps aux | grep tika | grep server` and then `kill -9 <pid>`
+The connector inherently uses Tika module for parsing file contents from attachments. `Tika-python <https://github.com/chrismattmann/tika-python>`_ uses Apache Tika REST server. To use this library, you need to have Java 7+ installed on your system as tika-python starts up the Tika REST server in the background.
+Tika Server also detects contents from images by automatically calling Tesseract OCR. To allow Tika to also extract content from images, you need to make sure tesseract is on your path and then restart tika-server in the backgroud(if it is already running), by doing ``ps aux | grep tika | grep server`` and then ``kill -9 <pid>``
 
 Sync user permissions
 =====================
