@@ -13,11 +13,29 @@ eshPipeline(
     repository: 'enterprise-search-sharepoint-server-2016-connector',
     stages: [
         [
-            name: 'Make Lint',
+            name: 'Linting',
             type: 'script',
             label: 'Makefile',
             script: {
                 sh 'docker run -v `pwd`:/ci -w=/ci --rm --name jenkins-linter -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 make lint'
+            },
+            match_on_all_branches: true,
+        ],
+        [
+            name: 'Testing',
+            type: 'script',
+            label: 'Makefile',
+            script: {
+                sh 'docker run -v `pwd`:/ci -w=/ci --rm --name jenkins-tester -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 make test'
+            },
+            match_on_all_branches: true,
+        ],
+        [
+            name: 'Test Coverage',
+            type: 'script',
+            label: 'Makefile',
+            script: {
+                sh 'docker run -v `pwd`:/ci -w=/ci --rm --name jenkins-tester -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 make cover'
             },
             match_on_all_branches: true,
         ]
