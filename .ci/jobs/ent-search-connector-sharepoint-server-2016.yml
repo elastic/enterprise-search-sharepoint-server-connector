@@ -1,7 +1,7 @@
 ---
 
 - job:
-    name: ent-search-connectors/sharepoint-server-2016
+    name: ent-search-ingestion/sharepoint-server-2016-connector
     description: "Runs tests and linters against the repository."
     project-type: multibranch
     node: master
