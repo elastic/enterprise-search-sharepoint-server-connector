@@ -3,6 +3,7 @@ ecs_logging==1.1.0
 elastic_enterprise_search==7.16.0
 pytest==6.2.5
 pytest-cov==3.0.0
+pytest-custom_exit_code==0.3.0
 pyyaml==6.0
 tika==1.24
 requests_ntlm==1.1.0
