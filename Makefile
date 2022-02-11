@@ -8,6 +8,8 @@ PYTHON = python3
 PIP = pip3
 VENV_DIRECTORY = venv
 PROJECT_DIRECTORY = ees_sharepoint
+TEST_DIRECTORY = tests
+COVERAGE_THRESHOLD = 0 # In percents, so 50 = 50%
 
 .DEFAULT_GOAL = help
 
@@ -38,10 +40,10 @@ install_locally: .installed .venv_init
 	${VENV_DIRECTORY}/bin/${PIP} install .
 
 test: .installed .venv_init
-	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest
+	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest ${TEST_DIRECTORY}/ --suppress-no-test-exit-code
 
 cover: .installed .venv_init
-	${VENV_DIRECTORY}/bin/pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=80 tests
+	${VENV_DIRECTORY}/bin/${PYTHON} -m pytest --cov ${PROJECT_DIRECTORY} --cov-fail-under=${COVERAGE_THRESHOLD} ${TEST_DIRECTORY}/ --suppress-no-test-exit-code
 
 lint: .installed .venv_init
 	${VENV_DIRECTORY}/bin/flake8 ${PROJECT_DIRECTORY}
