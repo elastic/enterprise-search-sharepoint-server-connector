@@ -7,8 +7,8 @@
 import sys
 from setuptools import setup, find_packages
 
-if sys.version_info < (3, 8):
-    raise ValueError("Requires Python 3.8 or superior")
+if sys.version_info < (3, 6):
+    raise ValueError("Requires Python 3.6 or superior")
 
 from ees_sharepoint import __version__  # NOQA
 
@@ -20,7 +20,8 @@ install_requires = [
     "ecs_logging",
     "cerberus",
     "pytest",
-    "pytest-cov"
+    "pytest-cov",
+    "cached_property"
 ]
 
 description = ""
@@ -33,6 +34,8 @@ classifiers = [
     "Programming Language :: Python",
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
 ]

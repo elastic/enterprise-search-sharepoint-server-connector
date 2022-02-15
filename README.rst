@@ -17,7 +17,7 @@ Requirements
 
 This connector requires:
 
-* Python >= 3.8
+* Python >= 3.6
 * Workplace Search >= 7.13.0 and a Platinum+ license.
 * Java 7 or higher
 * SharePoint Server 2016

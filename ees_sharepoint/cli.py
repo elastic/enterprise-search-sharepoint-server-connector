@@ -48,7 +48,8 @@ def _parser():
         help="path to the configuration file"
     )
 
-    subparsers = parser.add_subparsers(dest="cmd", required=True)
+    subparsers = parser.add_subparsers(dest="cmd")
+    subparsers.required = True
     bootstrap = subparsers.add_parser(CMD_BOOTSTRAP)
     bootstrap.add_argument(
         '-n',
