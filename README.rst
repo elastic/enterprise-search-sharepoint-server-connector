@@ -1,7 +1,8 @@
-Workplace Search | Sharepoint Server 2016 Connector
+Enterprise Search | Workplace Search | Sharepoint Server Connector
 ===================================================
 
-This connector synchronizes and enables searching over following items:
+SharePoint Server is collaboration platform in the Microsoft 365 solution suite which is often used as a centralized content management system.
+The Sharepoint Server connector provided with Workplace Search automatically synchronizes and enables searching over following items:
 
 * Site collections
 * Sites and sub sites
@@ -10,7 +11,9 @@ This connector synchronizes and enables searching over following items:
 * Attachments
 * Drives items (files and folders)
 
-If you have a multi-tenant environment, you need to configure one connector instance for each of the tenants / web-applications.
+If you have a multi-tenant environment, configure one connector instance for each of the tenants / web-applications. 
+
+This connector supports SharePoint Server versions: 2013, 2016 and 2019
 
 Requirements
 ------------
@@ -20,7 +23,7 @@ This connector requires:
 * Python >= 3.6
 * Workplace Search >= 7.13.0 and a Platinum+ license.
 * Java 7 or higher
-* SharePoint Server 2016
+* SharePoint Server 2013, 2016 or 2019 
 
 Installation
 ------------
