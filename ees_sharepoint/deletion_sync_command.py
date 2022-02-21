@@ -16,6 +16,8 @@ from .base_command import BaseCommand
 
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
+# By default, Enterprise Search configuration has a maximum allowed limit set to 100 documents for an api request
+DOCUMENT_SIZE = 100
 
 
 class DeletionSyncCommand(BaseCommand):
@@ -38,7 +40,7 @@ class DeletionSyncCommand(BaseCommand):
         logger = self.logger
         delete_ids_items = ids["delete_keys"][collection].get(key)
 
-        logger.info("Deindexing items...")
+        logger.info(f"Deindexing {key}...")
         if delete_ids_items:
             delete_site = []
             global_ids_items = ids["global_keys"][collection][key]
@@ -56,9 +58,11 @@ class DeletionSyncCommand(BaseCommand):
                         if resp.status_code == requests.codes['not_found'] or result == []:
                             doc.append(item_id)
                     if doc:
-                        self.workplace_search_client.delete_documents(
-                            content_source_id=self.ws_source,
-                            document_ids=doc)
+                        document_list = [doc[i:i + DOCUMENT_SIZE] for i in range(0, len(doc), DOCUMENT_SIZE)]
+                        for chunk in document_list:
+                            self.workplace_search_client.delete_documents(
+                                content_source_id=self.ws_source,
+                                document_ids=chunk)
                     updated_items = global_ids_items[site_url].get(list_id)
                     if updated_items is None:
                         continue
@@ -96,11 +100,13 @@ class DeletionSyncCommand(BaseCommand):
                 for list_id in list_details.keys():
                     url = f"{site_url}/_api/web/lists(guid\'{list_id}\')"
                     resp = self.sharepoint_client.get(url, '', "deindex")
-                    if resp and resp.status_code == requests.codes['not_found']:
+                    if resp is not None and resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
-                self.workplace_search_client.delete_documents(
-                    content_source_id=self.ws_source,
-                    document_ids=doc)
+                document_list = [doc[i:i + DOCUMENT_SIZE] for i in range(0, len(doc), DOCUMENT_SIZE)]
+                for chunk in document_list:
+                    self.workplace_search_client.delete_documents(
+                        content_source_id=self.ws_source,
+                        document_ids=chunk)
                 for list_id in doc:
                     if list_id in global_ids_lists[site_url]:
                         global_ids_lists[site_url].pop(list_id)
@@ -126,11 +132,13 @@ class DeletionSyncCommand(BaseCommand):
             for site_id, site_url in site_details.items():
                 url = f"{site_url}/_api/web"
                 resp = self.sharepoint_client.get(url, '', "deindex")
-                if resp and resp.status_code == requests.codes['not_found']:
+                if resp is not None and resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
-            self.workplace_search_client.delete_documents(
-                content_source_id=self.ws_source,
-                document_ids=doc)
+            document_list = [doc[i:i + DOCUMENT_SIZE] for i in range(0, len(doc), DOCUMENT_SIZE)]
+            for chunk in document_list:
+                self.workplace_search_client.delete_documents(
+                    content_source_id=self.ws_source,
+                    document_ids=chunk)
             for site_id in doc:
                 ids["global_keys"][collection]["sites"].pop(site_id)
         else:

@@ -592,9 +592,8 @@ def start(indexing_type, config, logger, workplace_search_client, sharepoint_cli
 
             storage_with_collection["global_keys"][collection] = storage.copy()
 
-            check.set_checkpoint(collection, start_time, indexing_type)
+            check.set_checkpoint(collection, end_time, indexing_type)
     except Exception as exception:
-        check.set_checkpoint(collection, end_time, indexing_type)
         raise exception
 
     with open(IDS_PATH, "w") as file:
