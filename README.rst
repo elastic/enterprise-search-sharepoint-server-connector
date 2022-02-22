@@ -4,12 +4,12 @@ Enterprise Search | Workplace Search | Sharepoint Server Connector
 SharePoint Server is collaboration platform in the Microsoft 365 solution suite which is often used as a centralized content management system.
 The Sharepoint Server connector provided with Workplace Search automatically synchronizes and enables searching over following items:
 
-* Site collections
-* Sites and sub sites
-* Lists
-* Items (List items)
+* Site Collections
+* Sites and Subsites
+* Lists 
+* Items (List Items)
 * Attachments
-* Drives items (files and folders)
+* Drives (Files & Folders)
 
 If you have a multi-tenant environment, configure one connector instance for each of the tenants / web-applications. 
 
