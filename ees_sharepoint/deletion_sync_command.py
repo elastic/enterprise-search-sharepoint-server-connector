@@ -17,7 +17,7 @@ from .base_command import BaseCommand
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 # By default, Enterprise Search configuration has a maximum allowed limit set to 100 documents for an api request
-DOCUMENT_SIZE = 100
+BATCH_SIZE = 100
 
 
 class DeletionSyncCommand(BaseCommand):
@@ -32,6 +32,16 @@ class DeletionSyncCommand(BaseCommand):
         config = self.config
 
         self.ws_source = config.get_value("workplace_search.source_id")
+
+    def split_in_chunks(self, doc):
+        """This method splits a list into separate chunks with maximum size
+            as BATCH_SIZE
+            :param doc: list of documents
+        """
+        document_list = []
+        for i in range(0, len(doc), BATCH_SIZE):
+            document_list.append(doc[i:i + BATCH_SIZE])
+        return document_list
 
     def deindexing_items(self, collection, ids, key):
         """Fetches the id's of deleted items from the sharepoint server and
@@ -58,8 +68,7 @@ class DeletionSyncCommand(BaseCommand):
                         if resp.status_code == requests.codes['not_found'] or result == []:
                             doc.append(item_id)
                     if doc:
-                        document_list = [doc[i:i + DOCUMENT_SIZE] for i in range(0, len(doc), DOCUMENT_SIZE)]
-                        for chunk in document_list:
+                        for chunk in self.split_in_chunks(doc):
                             self.workplace_search_client.delete_documents(
                                 content_source_id=self.ws_source,
                                 document_ids=chunk)
@@ -102,8 +111,7 @@ class DeletionSyncCommand(BaseCommand):
                     resp = self.sharepoint_client.get(url, '', "deindex")
                     if resp is not None and resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
-                document_list = [doc[i:i + DOCUMENT_SIZE] for i in range(0, len(doc), DOCUMENT_SIZE)]
-                for chunk in document_list:
+                for chunk in self.split_in_chunks(doc):
                     self.workplace_search_client.delete_documents(
                         content_source_id=self.ws_source,
                         document_ids=chunk)
@@ -134,8 +142,7 @@ class DeletionSyncCommand(BaseCommand):
                 resp = self.sharepoint_client.get(url, '', "deindex")
                 if resp is not None and resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
-            document_list = [doc[i:i + DOCUMENT_SIZE] for i in range(0, len(doc), DOCUMENT_SIZE)]
-            for chunk in document_list:
+            for chunk in self.split_in_chunks(doc):
                 self.workplace_search_client.delete_documents(
                     content_source_id=self.ws_source,
                     document_ids=chunk)
