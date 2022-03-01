@@ -16,10 +16,11 @@ from urllib.parse import urljoin
 from dateutil.parser import parse
 
 from tika.tika import TikaException
+from multiprocessing.pool import ThreadPool
 
 from .checkpointing import Checkpoint
 from .usergroup_permissions import Permissions
-from .utils import encode, extract
+from .utils import encode, extract, partition_equal_share, split_list_in_chunks, get_partition_time, split_dict_in_chunks
 from . import adapter
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
@@ -31,8 +32,7 @@ SITES = "sites"
 LISTS = "lists"
 LIST_ITEMS = "list_items"
 DRIVE_ITEMS = "drive_items"
-DOCUMENT_SIZE = 100
-DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+BATCH_SIZE = 100
 
 
 def get_results(logger, response, entity_name):
@@ -66,21 +66,20 @@ class FetchIndex:
         self.enable_permission = config.get_value("enable_document_permission")
         self.start_time = start_time
         self.end_time = end_time
+        self.max_threads = config.get_value("max_threads")
         self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
 
         self.checkpoint = Checkpoint(config, logger)
         self.permissions = Permissions(self.sharepoint_client, self.workplace_search_client, logger)
 
-    def index_document(self, document, parent_object, param_name):
+    def index_document(self, document, param_name):
         """ This method indexes the documents to the workplace.
             :param document: document to be indexed
-            :param parent_object: parent of the objects to be indexed
             :param param_name: parameter name whether it is SITES, LISTS LIST_ITEMS OR DRIVE_ITEMS
         """
         if document:
             total_documents_indexed = 0
-            document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
-            for chunk in document_list:
+            for chunk in split_list_in_chunks(document, BATCH_SIZE):
                 response = self.workplace_search_client.index_documents(
                     content_source_id=self.ws_source,
                     documents=chunk
@@ -90,8 +89,21 @@ class FetchIndex:
                         total_documents_indexed += 1
                     else:
                         self.logger.error("Error while indexing %s. Error: %s" % (each['id'], each['errors']))
-        self.logger.info("Successfully indexed %s %s for %s to the workplace" % (
-            total_documents_indexed, param_name, parent_object))
+        self.logger.info("Successfully indexed %s %s to the workplace" % (
+            total_documents_indexed, param_name))
+
+    def threaded_index_documents(self, document, param_name):
+        """ Applies multithreading on indexing functionality
+            :param document: documents to be indexed equally in each thread
+            :param param_name: parameter name whether it is SITES, LISTS LIST_ITEMS OR DRIVE_ITEMS
+        """
+        chunk_documents = partition_equal_share(document, self.max_threads)
+        thread_pool = ThreadPool(self.max_threads)
+        for doc in chunk_documents:
+            thread_pool.apply_async(self.index_document, (doc, param_name))
+
+        thread_pool.close()
+        thread_pool.join()
 
     def get_schema_fields(self, document_name):
         """ returns the schema of all the include_fields or exclude_fields specified in the configuration file.
@@ -112,7 +124,7 @@ class FetchIndex:
             adapter_schema['id'] = field_id
         return adapter_schema
 
-    def index_sites(self, parent_site_url, sites, ids, index):
+    def fetch_sites(self, parent_site_url, sites, ids, index, start_time, end_time):
         """This method fetches sites from a collection and invokes the
             index permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
@@ -120,23 +132,24 @@ class FetchIndex:
             :param sites: dictionary of site path and it's last updated time
             :param ids: structure containing id's of all objects
             :param index: index, boolean value
+            :param start_time: start time for fetching the data
+            :param end_time: end time for fetching the data
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
         rel_url = f"{parent_site_url}/_api/web/webs"
         self.logger.info("Fetching the sites detail from url: %s" % (rel_url))
         query = self.sharepoint_client.get_query(
-            self.start_time, self.end_time, SITES)
+            start_time, end_time, SITES)
         response = self.sharepoint_client.get(rel_url, query, SITES)
 
         response_data = get_results(self.logger, response, SITES)
         if not response_data:
-            self.logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, self.start_time, self.end_time))
+            self.logger.info("No sites were created in %s for this interval: start time: %s and end time: %s" % (parent_site_url, start_time, end_time))
             return sites
         self.logger.info(
             "Successfully fetched and parsed %s sites response from SharePoint" % len(response_data)
         )
-        self.logger.info("Indexing the sites to the Workplace")
 
         schema = self.get_schema_fields(SITES)
         document = []
@@ -153,18 +166,18 @@ class FetchIndex:
                         key=SITES, site=response_data[i]['ServerRelativeUrl'])
                 document.append(doc)
                 ids["sites"].update({doc["id"]: response_data[i]["ServerRelativeUrl"]})
-            self.index_document(document, parent_site_url, SITES)
         for result in response_data:
             site_server_url = result.get("ServerRelativeUrl")
             sites.update({site_server_url: result.get("LastItemModifiedDate")})
-            self.index_sites(site_server_url, sites, ids, index)
-        return sites
+            self.fetch_sites(site_server_url, sites, ids, index, start_time, end_time)
+        return sites, document
 
-    def index_lists(self, sites, ids, index):
+    def fetch_lists(self, sites, ids, index):
         """This method fetches lists from all sites in a collection and invokes the
             index permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
             :param sites: dictionary of site path and it's last updated time
+            :param ids: structure containing id's of all objects
             :param index: index, boolean value
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
@@ -176,70 +189,67 @@ class FetchIndex:
             self.logger.info("No list was created in this interval: start time: %s and end time: %s" % (self.start_time, self.end_time))
             return [], []
         schema_list = self.get_schema_fields(LISTS)
-        for site, time_modified in sites.items():
-            if parse(self.start_time) > parse(time_modified):
-                continue
-            rel_url = f"{site}/_api/web/lists"
-            self.logger.info(
-                "Fetching the lists for site: %s from url: %s"
-                % (site, rel_url)
-            )
-
-            query = self.sharepoint_client.get_query(
-                self.start_time, self.end_time, LISTS)
-            response = self.sharepoint_client.get(
-                rel_url, query, LISTS)
-
-            response_data = get_results(self.logger, response, LISTS)
-            if not response_data:
-                self.logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
-                continue
-            self.logger.info(
-                "Successfully fetched and parsed %s list response for site: %s from SharePoint"
-                % (len(response_data), site)
-            )
-
-            base_list_url = f"{site}/Lists/"
-
-            if index:
-                if not ids["lists"].get(site):
-                    ids["lists"].update({site: {}})
-                for i, _ in enumerate(response_data):
-                    doc = {'type': LIST}
-                    for field, response_field in schema_list.items():
-                        doc[field] = response_data[i].get(
-                            response_field)
-                    if self.enable_permission is True:
-                        doc["_allow_permissions"] = self.index_permissions(
-                            key=LISTS, site=site, list_id=doc["id"], list_url=response_data[i]['ParentWebUrl'], itemid=None)
-                    doc["url"] = urljoin(base_list_url, re.sub(
-                        r'[^ \w+]', '', response_data[i]["Title"]))
-                    document.append(doc)
-                    ids["lists"][site].update({doc["id"]: response_data[i]["Title"]})
+        for site_details in sites:
+            for site, time_modified in site_details.items():
+                if parse(self.start_time) > parse(time_modified):
+                    continue
+                rel_url = f"{site}/_api/web/lists"
                 self.logger.info(
-                    "Indexing the list for site: %s to the Workplace" % (site)
+                    "Fetching the lists for site: %s from url: %s"
+                    % (site, rel_url)
                 )
 
-                self.index_document(document, site, LISTS)
+                query = self.sharepoint_client.get_query(
+                    self.start_time, self.end_time, LISTS)
+                response = self.sharepoint_client.get(
+                    rel_url, query, LISTS)
 
-            responses.append(response_data)
-        lists = {}
-        libraries = {}
-        for response in responses:
-            for result in response:
-                if result.get('BaseType') == 1:
-                    libraries[result.get("Id")] = [result.get(
-                        "ParentWebUrl"), result.get("Title"), result.get("LastItemModifiedDate")]
-                else:
-                    lists[result.get("Id")] = [result.get(
-                        "ParentWebUrl"), result.get("Title"), result.get("LastItemModifiedDate")]
-        return lists, libraries
+                response_data = get_results(self.logger, response, LISTS)
+                if not response_data:
+                    self.logger.info("No list was created for the site : %s in this interval: start time: %s and end time: %s" % (site, self.start_time, self.end_time))
+                    continue
+                self.logger.info(
+                    "Successfully fetched and parsed %s list response for site: %s from SharePoint"
+                    % (len(response_data), site)
+                )
 
-    def index_items(self, lists, ids):
+                base_list_url = f"{site}/Lists/"
+
+                if index:
+                    if not ids["lists"].get(site):
+                        ids["lists"].update({site: {}})
+                    for i, _ in enumerate(response_data):
+                        doc = {'type': LIST}
+                        for field, response_field in schema_list.items():
+                            doc[field] = response_data[i].get(
+                                response_field)
+                        if self.enable_permission is True:
+                            doc["_allow_permissions"] = self.index_permissions(
+                                key=LISTS, site=site, list_id=doc["id"], list_url=response_data[i]['ParentWebUrl'], itemid=None)
+                        doc["url"] = urljoin(base_list_url, re.sub(
+                            r'[^ \w+]', '', response_data[i]["Title"]))
+                        document.append(doc)
+                        ids["lists"][site].update({doc["id"]: response_data[i]["Title"]})
+
+                responses.append(response_data)
+            lists = {}
+            libraries = {}
+            for response in responses:
+                for result in response:
+                    if result.get('BaseType') == 1:
+                        libraries[result.get("Id")] = [result.get(
+                            "ParentWebUrl"), result.get("Title"), result.get("LastItemModifiedDate")]
+                    else:
+                        lists[result.get("Id")] = [result.get(
+                            "ParentWebUrl"), result.get("Title"), result.get("LastItemModifiedDate")]
+        return lists, libraries, document
+
+    def fetch_items(self, lists, ids):
         """This method fetches items from all the lists in a collection and
             invokes theindex permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
             :param lists: document lists
+            :param ids: structure containing id's of all objects
             Returns:
                 document: response of sharepoint GET call, with fields specified in the schema
         """
@@ -316,23 +326,17 @@ class FetchIndex:
                     if response_data[i].get("GUID") not in ids["list_items"][value[0]][list_content]:
                         ids["list_items"][value[0]][list_content].append(
                             response_data[i].get("GUID"))
-                self.logger.info(
-                    "Indexing the listitem for list: %s to the Workplace"
-                    % (value[1])
-                )
-
-                self.index_document(document, value[1], LIST_ITEMS)
-
-                responses.append(document)
+                responses.extend(document)
         return responses
 
-    def index_drive_items(self, libraries, ids):
+    def fetch_drive_items(self, libraries, ids):
         """This method fetches items from all the lists in a collection and
             invokes theindex permission method to get the document level permissions.
             If the fetching is not successful, it logs proper message.
             :param libraries: document lists
             :param ids: structure containing id's of all objects
         """
+        responses = []
         #  here value is a list of url and title of the library
         self.logger.info("Fetching all the files for the library")
         if not libraries:
@@ -390,12 +394,8 @@ class FetchIndex:
                     document.append(doc)
                     if doc['id'] not in ids["drive_items"][value[0]][lib_content]:
                         ids["drive_items"][value[0]][lib_content].append(doc['id'])
-                if document:
-                    self.logger.info("Indexing the drive items for library: %s to the Workplace" % (value[1]))
-                    self.index_document(document, value[1], DRIVE_ITEMS)
-                else:
-                    self.logger.info("No item was present in the library %s for the interval: start time: %s and end time: %s" % (
-                        value[1], self.start_time, self.end_time))
+                responses.extend(document)
+        return responses
 
     def get_roles(self, key, site, list_url, list_id, itemid):
         """ Checks the permissions and returns the user roles.
@@ -458,40 +458,113 @@ class FetchIndex:
             groups.append(title)
         return groups
 
+    def index_sites(self, parent_site_url, ids, sites_path):
+        """ Indexes the site details to the Workplace Search
+            :param parent_site_url: parent site relative path
+            :param ids: id collection of the all the objects
+            :param sites_path: dictionary of site path and it's last updated time
+        """
+        _, datelist = get_partition_time(self.max_threads, self.start_time, self.end_time)
+        results = []
+        thread_pool = ThreadPool(self.max_threads)
+        for num in range(0, self.max_threads):
+            start_time_partition = datelist[num]
+            end_time_partition = datelist[num + 1]
+            thread = thread_pool.apply_async(
+                self.fetch_sites, (parent_site_url, {}, ids, (SITES in self.objects),
+                                   start_time_partition, end_time_partition))
+            results.append(thread.get())
+
+        sites, documents = [], []
+        for result in results:
+            if result:
+                sites.append(result[0])
+                documents.extend(result[1])
+        thread_pool.close()
+        thread_pool.join()
+        self.threaded_index_documents(documents, SITES)
+        sites_path.extend(sites)
+
+    def index_lists(self, sites_path, ids, lists_details, libraries_details):
+        """ Indexes the list details to the Workplace Search
+            :param sites_path: dictionary of site path and it's last updated time
+            :param ids: id collection of the all the objects
+            :param lists_details: dictionary containing list name, list path and id
+            :param libraries_details: dictionary containing library name, library path and id
+        """
+        results = []
+        thread_pool = ThreadPool(self.max_threads)
+        partitioned_sites = partition_equal_share(sites_path, self.max_threads)
+        for site in partitioned_sites:
+            thread = thread_pool.apply_async(self.fetch_lists, (site, ids, (LISTS in self.objects)))
+            results.append(thread.get())
+        documents = []
+        for result in results:
+            if result:
+                lists_details.update(result[0])
+                libraries_details.update(result[1])
+                documents.extend(result[2])
+        thread_pool.close()
+        thread_pool.join()
+        self.threaded_index_documents(documents, LISTS)
+
+    def index_items(self, job_type, lists_details, libraries_details, ids):
+        """ Indexes the list_items and drive_items to the Workplace Search
+            :param job_type: denotes the type of sharepoint object being fetched in a particular process
+            :param lists_details: dictionary containing list name, list path and id
+            :param libraries_details: dictionary containing library name, library path and id
+            :param ids: id collection of the all the objects
+        """
+        results = []
+        partition = []
+        if job_type == "list_items" and LIST_ITEMS in self.objects:
+            thread_pool = ThreadPool(self.max_threads)
+            func = self.fetch_items
+            partition = split_dict_in_chunks(lists_details, self.max_threads)
+        elif job_type == "drive_items" and DRIVE_ITEMS in self.objects:
+            thread_pool = ThreadPool(self.max_threads)
+            func = self.fetch_drive_items
+            partition = split_dict_in_chunks(libraries_details, self.max_threads)
+        for list_data in partition:
+            thread = thread_pool.apply_async(func, (list_data, ids))
+            results.append(thread.get())
+        documents = []
+        for result in results:
+            if result:
+                documents.extend(result)
+        thread_pool.close()
+        thread_pool.join()
+        self.threaded_index_documents(documents, job_type)
+
     def indexing(self, collection, ids, storage, job_type, parent_site_url, sites_path, lists_details, libraries_details):
         """This method fetches all the objects from sharepoint server and
             ingests them into the workplace search
             :param collection: collection name
             :param ids: id collection of the all the objects
             :param storage: temporary storage for storing all the documents
-            :job_type: denotes the type of sharepoint object being fetched in a particular process
-            :parent_site_url: parent site relative path
-            :sites_path: dictionary of site path and it's last updated time
-            :lists_details: dictionary containing list name, list path and id
-            :library_details: dictionary containing library name, library path and id
+            :param job_type: denotes the type of sharepoint object being fetched in a particular process
+            :param parent_site_url: parent site relative path
+            :param sites_path: dictionary of site path and it's last updated time
+            :param lists_details: dictionary containing list name, list path and id
+            :param libraries_details: dictionary containing library name, library path and id
         """
         if job_type == "sites":
-            sites = self.index_sites(parent_site_url, {}, ids, index=(SITES in self.objects))
-            sites_path.update(sites)
+            self.index_sites(parent_site_url, ids, sites_path)
+
         elif job_type == "lists":
-            lists, libraries = self.index_lists(sites_path, ids, index=(LISTS in self.objects))
-            lists_details.update(lists)
-            libraries_details.update(libraries)
-        elif job_type == "list_items":
-            if LIST_ITEMS in self.objects:
-                self.index_items(lists_details, ids)
-        else:
-            if DRIVE_ITEMS in self.objects:
-                self.index_drive_items(libraries_details, ids)
+            self.index_lists(sites_path, ids, lists_details, libraries_details)
 
-            self.logger.info(
-                "Completed fetching all the objects for site collection: %s"
-                % (collection)
-            )
+        elif job_type in ["list_items", "drive_items"]:
+            self.index_items(job_type, lists_details, libraries_details, ids)
 
-            self.logger.info(
-                "Saving the checkpoint for the site collection: %s" % (collection)
-            )
+        self.logger.info(
+            "Completed fetching all the objects for site collection: %s"
+            % (collection)
+        )
+
+        self.logger.info(
+            "Saving the checkpoint for the site collection: %s" % (collection)
+        )
         if ids.get(job_type):
             prev_ids = storage[job_type]
             if job_type == 'sites':
@@ -505,21 +578,6 @@ class FetchIndex:
                     for list_name in list_content.keys():
                         prev_ids[site][list_name] = list(set([*prev_ids[site].get(list_name, []), *ids[job_type][site][list_name]]))
             storage[job_type] = prev_ids
-
-
-def datetime_partitioning(start_time, end_time, processes):
-    """ Divides the timerange in equal partitions by number of processors
-        :param start_time: start time of the interval
-        :param end_time: end time of the interval
-        :param processes: number of processors the device have
-    """
-    start_time = datetime.strptime(start_time, DATETIME_FORMAT)
-    end_time = datetime.strptime(end_time, DATETIME_FORMAT)
-
-    diff = (end_time - start_time) / processes
-    for idx in range(processes):
-        yield start_time + diff * idx
-    yield end_time
 
 
 def start(indexing_type, config, logger, workplace_search_client, sharepoint_client):
@@ -568,7 +626,7 @@ def start(indexing_type, config, logger, workplace_search_client, sharepoint_cli
                     "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
 
             parent_site_url = f"/sites/{collection}"
-            sites_path = {parent_site_url: end_time}
+            sites_path = [{parent_site_url: end_time}]
             lists_details = {}
             libraries_details = {}
             logger.info(
@@ -592,9 +650,8 @@ def start(indexing_type, config, logger, workplace_search_client, sharepoint_cli
 
             storage_with_collection["global_keys"][collection] = storage.copy()
 
-            check.set_checkpoint(collection, start_time, indexing_type)
+            check.set_checkpoint(collection, end_time, indexing_type)
     except Exception as exception:
-        check.set_checkpoint(collection, end_time, indexing_type)
         raise exception
 
     with open(IDS_PATH, "w") as file:

@@ -156,13 +156,19 @@ schema = {
     'log_level': {
         'required': False,
         'type': 'string',
-        'default': 'info',
+        'default': 'INFO',
         'allowed': ['DEBUG', 'INFO', 'WARN', 'ERROR']
     },
     'retry_count': {
         'required': False,
         'type': 'integer',
         'default': 3,
+        'min': 1
+    },
+    'max_threads': {
+        'required': False,
+        'type': 'integer',
+        'default': 40,
         'min': 1
     },
     'sharepoint_workplace_user_mapping': {

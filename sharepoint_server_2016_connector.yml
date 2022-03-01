@@ -44,5 +44,7 @@ end_time :
 log_level: INFO
 #The number of retries to perform in case of server error. The connector will use exponential backoff for retry mechanism
 retry_count: 3
+#Number of threads to be used in multithreading for the connector.
+max_threads: 40
 #the path of csv file containing mapping of sharepoint user ID to Workplace user ID
 sharepoint_workplace_user_mapping: "C:/Users/abc/folder_name/file_name.csv"
