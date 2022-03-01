@@ -28,3 +28,17 @@ def encode(object_name):
         :param object_name: name that contains special characters"""
     name = urllib.parse.quote(object_name, safe="'")
     return name.replace("'", "''")
+
+
+def split_in_chunks(input_list, chunk_size):
+    """This method splits a list into separate chunks with maximum size
+        as chunk_size
+        :param input_list: list to be partitioned into chunks
+        :param chunk_size: maximum size of a chunk
+        Returns:
+            :list_of_chunks: list containing the chunks
+    """
+    list_of_chunks = []
+    for i in range(0, len(input_list), chunk_size):
+        list_of_chunks.append(input_list[i:i + chunk_size])
+    return list_of_chunks
