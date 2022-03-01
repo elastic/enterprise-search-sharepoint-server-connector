@@ -6,7 +6,7 @@
 """Cli module contains entry point for the package.
 
 Endpoint provides a meaningful piece of functionallity
-related to uploading data from Sharepoint Server 2016
+related to uploading data from Sharepoint Server
 to Elastic Enterprise Search with subcommands."""
 
 import os
@@ -87,7 +87,7 @@ def main(args=None):
         args.password = getpass.getpass(prompt='Password: ', stream=None)
 
     if not args.config_file:
-        args.config_file = os.path.join(os.path.expanduser('~'), '.local', 'config', 'sharepoint_server_2016_connector.yml')
+        args.config_file = os.path.join(os.path.expanduser('~'), '.local', 'config', 'sharepoint_server_connector.yml')
 
     run(args)
 

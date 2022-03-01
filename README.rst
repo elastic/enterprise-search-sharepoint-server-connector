@@ -6,12 +6,12 @@ The Sharepoint Server connector provided with Workplace Search automatically syn
 
 * Site Collections
 * Sites and Subsites
-* Lists 
+* Lists
 * Items (List Items)
 * Attachments
 * Drives (Files & Folders)
 
-If you have a multi-tenant environment, configure one connector instance for each of the tenants / web-applications. 
+If you have a multi-tenant environment, configure one connector instance for each of the tenants / web-applications.
 
 This connector supports SharePoint Server versions: 2013, 2016 and 2019
 
@@ -23,7 +23,7 @@ This connector requires:
 * Python >= 3.6
 * Workplace Search >= 7.13.0 and a Platinum+ license.
 * Java 7 or higher
-* SharePoint Server 2013, 2016 or 2019 
+* SharePoint Server 2013, 2016 or 2019
 
 Installation
 ------------
@@ -44,15 +44,15 @@ After the package is installed, you can open a new shell and run the connector i
 - deletion-sync to remove from Enterprise Search the data recently deleted from Sharepoint Server
 - permission-sync to synchronize permissions of the users from Sharepoint Server Enterprise Search
 
-The connector will install supplied sharepoint_server_2016_connector.yml file into the package data files and use it when ran without -c option.
-You can either edit supplied sharepoint_server_2016_connector.yml file **before** installing the package, or run connector with -c <FILE_NAME> pointing
+The connector will install supplied sharepoint_server_connector.yml file into the package data files and use it when ran without -c option.
+You can either edit supplied sharepoint_server_connector.yml file **before** installing the package, or run connector with -c <FILE_NAME> pointing
 to the config file you're willing to use, for example::
 
-    ees_sharepoint -c ~/server-1-sharepoint_server_2016_connector.yml full-sync
+    ees_sharepoint -c ~/server-1-sharepoint_server_connector.yml full-sync
 
 By default the connector will put its default config file into a `config` directory along the executable. To find the config file
 you can run `which ees_sharepoint` to see where the executable of the connector is, then run `cd ../config` and you'll find yourself
-in the directory with a default `sharepoint_server_2016_connector.yml` file.
+in the directory with a default `sharepoint_server_connector.yml` file.
 
 Bootstrapping
 -------------
@@ -62,7 +62,7 @@ can either get it by creating a new `custom API source <https://www.elastic.co/g
 from Workplace Search admin dashboard or you can just bootstrap it using the
 bootstrap.py file. To use bootstrap.py, make sure you have specified
 'enterprise_search.host_url' and 'workplace_search.api_key' in the
-sharepoint_connector_sharepoint_server_2016_connector.yml file. Run the bootstrap command ::
+sharepoint_connector_sharepoint_server_connector.yml file. Run the bootstrap command ::
 
     ees_sharepoint bootstrap --name <Name of the Content Source> --user <Admin Username>
 
@@ -97,7 +97,7 @@ It's possible to run the connectors as a cron job. A sample crontab file is prov
 You can edit and then add it manually to your crontab with `crontab -e` or if your system supports cron.d copy or symlink it into /etc/cron.d/ directory.
 
 The connector will emit logs into stdout and stderr, if logs are needed consider simply piping the output of connectors into
-desired file, for example the crontab if you've put config file into `~/.config/sharepoint-connector-sharepoint_server_2016_connector.yml` and
+desired file, for example the crontab if you've put config file into `~/.config/sharepoint-connector-sharepoint_server_connector.yml` and
 want to have logs in `~/` can look like::
 
     0 */2 * * * ees_sharepoint incremental-sync >> ~/incremental-sync.log
@@ -144,6 +144,4 @@ This command will attempt to to:
 
 ### Where can I go to get help?
 
-The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the [Elastic Enterprise Search](https://discuss.elastic.co/c/enterprise-search/84) discuss forums. 
-
-
+The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the [Elastic Enterprise Search](https://discuss.elastic.co/c/enterprise-search/84) discuss forums.

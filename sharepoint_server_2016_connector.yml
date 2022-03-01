@@ -1,6 +1,6 @@
-#Configurations for the SharePoint 2016 Connector
+#Configurations for the SharePoint Server Connector
 
-#SharePoint 2016 configuration settings
+#SharePoint Server configuration settings
 #The domain name of the sharepoint server for NTLM authenticaion
 sharepoint.domain: ""
 #The username used to login to Sharepoint server
