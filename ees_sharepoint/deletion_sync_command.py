@@ -101,7 +101,7 @@ class DeletionSyncCommand(BaseCommand):
                     resp = self.sharepoint_client.get(url, '', "deindex")
                     if resp is not None and resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
-                for chunk in self.split_in_chunks(doc, BATCH_SIZE):
+                for chunk in split_in_chunks(doc, BATCH_SIZE):
                     self.workplace_search_client.delete_documents(
                         content_source_id=self.ws_source,
                         document_ids=chunk)
@@ -132,7 +132,7 @@ class DeletionSyncCommand(BaseCommand):
                 resp = self.sharepoint_client.get(url, '', "deindex")
                 if resp is not None and resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
-            for chunk in self.split_in_chunks(doc, BATCH_SIZE):
+            for chunk in split_in_chunks(doc, BATCH_SIZE):
                 self.workplace_search_client.delete_documents(
                     content_source_id=self.ws_source,
                     document_ids=chunk)
