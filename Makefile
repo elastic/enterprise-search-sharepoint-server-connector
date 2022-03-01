@@ -4,9 +4,10 @@
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
 
-PYTHON ?= python3
+PYTHON_CMD ?= python3
 PYTHON_EXE = python
-PIP = pip3
+PIP_CMD = pip3
+PIP_EXE = pip3
 VENV_DIRECTORY = venv
 PROJECT_DIRECTORY = ees_sharepoint
 TEST_DIRECTORY = tests
@@ -33,20 +34,20 @@ help:
 	@echo "make test_connectivity - test connectivity to Sharepoint and Enterprise Search"
 
 .venv_init:
-	${PIP} install virtualenv
-	${PYTHON} -m venv ${VENV_DIRECTORY}
+	${PIP_CMD} install virtualenv
+	${PYTHON_CMD} -m venv ${VENV_DIRECTORY}
 	${CMD_UPDATE} .venv_init
 
 .installed: .venv_init
-	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP} install -U pip
-	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP} install -r requirements.txt
+	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP_EXE} install -U pip
+	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP_EXE} install -r requirements.txt
 	${CMD_UPDATE} .installed
 
 # install_locally can be used to test the implementation after the changes were made to the module
 # #{VENV_DIRECTORY}/bin will contain a file with name ${PROJECT_DIRECTORY} that is the main
 # executable.
 install_locally: .installed .venv_init
-	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP} install .
+	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP_EXE} install .
 
 test: .installed .venv_init
 	${VENV_DIRECTORY}/${EXEC_DIR}/${PYTHON_EXE} -m pytest ${TEST_DIRECTORY}/ --suppress-no-test-exit-code
@@ -61,10 +62,10 @@ test_connectivity: .installed .venv_init
 	${VENV_DIRECTORY}/${EXEC_DIR}/pytest ${PROJECT_DIRECTORY}/test_connectivity.py
 
 install_package: .installed
-	${PIP} install --user .
+	${PIP_CMD} install --user .
 
 uninstall_package:
-	${PIP} uninstall ${PROJECT_DIRECTORY} -y
+	${PIP_CMD} uninstall ${PROJECT_DIRECTORY} -y
 
 
 clean:
