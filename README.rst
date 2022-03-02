@@ -142,8 +142,9 @@ This command will attempt to to:
 * check connectivity with Sharepoint
 * test the basic ingestion and deletion to the Workplace Search
 
-### Where can I go to get help?
+Where can I go to get help?
+===========================
 
-The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the [Elastic Enterprise Search](https://discuss.elastic.co/c/enterprise-search/84) discuss forums. 
+The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the Elastic Enterprise Search discuss forums. 
 
 
