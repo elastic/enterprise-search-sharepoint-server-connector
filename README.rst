@@ -15,6 +15,8 @@ If you have a multi-tenant environment, configure one connector instance for eac
 
 This connector supports SharePoint Server versions: 2013, 2016 and 2019
 
+Note: The Sharepoint Server Connector is a **beta** feature. Beta features are subject to change and are not covered by the support SLA of general release (GA) features. Elastic plans to promote this feature to GA in a future release. 
+
 Requirements
 ------------
 
@@ -145,6 +147,6 @@ This command will attempt to to:
 Where can I go to get help?
 ===========================
 
-The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the Elastic Enterprise Search discuss forums. 
+The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the Elastic Enterprise Search `discuss forums <https://discuss.elastic.co/c/enterprise-search/84>`_. 
 
 
