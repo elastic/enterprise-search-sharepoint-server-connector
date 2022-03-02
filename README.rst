@@ -4,12 +4,12 @@ Enterprise Search | Workplace Search | Sharepoint Server Connector
 SharePoint Server is collaboration platform in the Microsoft 365 solution suite which is often used as a centralized content management system.
 The Sharepoint Server connector provided with Workplace Search automatically synchronizes and enables searching over following items:
 
-* Site collections
-* Sites and sub sites
-* Lists
-* Items (List items)
+* Site Collections
+* Sites and Subsites
+* Lists 
+* Items (List Items)
 * Attachments
-* Drives items (files and folders)
+* Drives (Files & Folders)
 
 If you have a multi-tenant environment, configure one connector instance for each of the tenants / web-applications. 
 
@@ -141,3 +141,9 @@ This command will attempt to to:
 * check connectivity with Workplace Search
 * check connectivity with Sharepoint
 * test the basic ingestion and deletion to the Workplace Search
+
+### Where can I go to get help?
+
+The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the [Elastic Enterprise Search](https://discuss.elastic.co/c/enterprise-search/84) discuss forums. 
+
+
