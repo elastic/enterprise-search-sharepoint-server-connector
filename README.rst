@@ -1,7 +1,7 @@
 Enterprise Search | Workplace Search | Sharepoint Server Connector
 ===================================================
 
-SharePoint Server is collaboration platform in the Microsoft 365 solution suite which is often used as a centralized content management system.
+SharePoint Server is a collaboration platform in the Microsoft 365 solution suite which is often used as a centralized content management system.
 The Sharepoint Server connector provided with Workplace Search automatically synchronizes and enables searching over following items:
 
 * Site Collections
@@ -148,5 +148,7 @@ Where can I go to get help?
 ===========================
 
 The Enterprise Search team at Elastic maintains this library and are happy to help. Try posting your question to the Elastic Enterprise Search `discuss forums <https://discuss.elastic.co/c/enterprise-search/84>`_. 
+
+If you are an Elastic customer, please contact Elastic Support for assistance.
 
 
