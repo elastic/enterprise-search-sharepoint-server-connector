@@ -473,10 +473,10 @@ class FetchIndex:
             thread = thread_pool.apply_async(
                 self.fetch_sites, (parent_site_url, {}, ids, (SITES in self.objects),
                                    start_time_partition, end_time_partition))
-            results.append(thread.get())
+            results.append(thread)
 
         sites, documents = [], []
-        for result in results:
+        for result in [r.get() for r in results]:
             if result:
                 sites.append(result[0])
                 documents.extend(result[1])
@@ -497,9 +497,9 @@ class FetchIndex:
         partitioned_sites = partition_equal_share(sites_path, self.max_threads)
         for site in partitioned_sites:
             thread = thread_pool.apply_async(self.fetch_lists, (site, ids, (LISTS in self.objects)))
-            results.append(thread.get())
+            results.append(thread)
         documents = []
-        for result in results:
+        for result in [r.get() for r in results]:
             if result:
                 lists_details.update(result[0])
                 libraries_details.update(result[1])
@@ -527,9 +527,9 @@ class FetchIndex:
             partition = split_dict_in_chunks(libraries_details, self.max_threads)
         for list_data in partition:
             thread = thread_pool.apply_async(func, (list_data, ids))
-            results.append(thread.get())
+            results.append(thread)
         documents = []
-        for result in results:
+        for result in [r.get() for r in results]:
             if result:
                 documents.extend(result)
         thread_pool.close()
