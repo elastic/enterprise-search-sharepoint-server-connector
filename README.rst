@@ -127,17 +127,17 @@ Tika Server also detects contents from images by automatically calling Tesseract
 Sync user permissions
 =====================
 
-This functionality will sync any updates to the users and groups in the Sharepoint with Workplace. Run the `permission-sync` command to sync user permissions into Workplace Search.
+This functionality will sync any updates to the users and groups in the Sharepoint with Workplace. Run the 'permission-sync' command to sync user permissions into Workplace Search.
 
-Removing files deleted in Sharepoint Server from Enterprise Search
+Removing files deleted in SharePoint Server from Enterprise Search
 ==================================================================
 
-When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the `deletion-sync` command for deleting the records from Workplace Search.
+When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the 'deletion-sync' command for deleting the records from Workplace Search.
 
 Testing connectivity
 ====================
 
-You can check the connectivity with Sharepoint and Workplace Search server using.
+You can check the connectivity that the SharePoint server and Workplace Search server are using.
 
 Use the following command ::bash
 
