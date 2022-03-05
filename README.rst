@@ -48,15 +48,15 @@ After the package is installed, you can open a new shell and run the connector i
 - 'deletion-sync' to remove from Enterprise Search the data recently deleted from SharePoint Server
 - 'permission-sync' to synchronize permissions of the users from SharePoint Server Enterprise Search
 
-The connector will install the supplied sharepoint_server_2016_connector.yml file into the package data files and use it when run without the -c option.
-You can either edit supplied sharepoint_server_2016_connector.yml file **before** installing the package, or run the connector with '-c <FILE_NAME>' pointing
+The connector will install the supplied sharepoint_server_connector.yml file into the package data files and use it when run without the -c option.
+You can either edit supplied sharepoint_server_connector.yml file **before** installing the package, or run the connector with '-c <FILE_NAME>' pointing
 to the config file you're willing to use, for example::
 
-    ees_sharepoint -c ~/server-1-sharepoint_server_2016_connector.yml full-sync
+    ees_sharepoint -c ~/server-1-sharepoint_server_connector.yml full-sync
 
 By default the connector will put its default config file into a `config` directory along the executable. To find the config file
 you can run 'which ees_sharepoint' to see where the executable of the connector is, then run 'cd ../config' and you'll find yourself
-in the directory with a default 'sharepoint_server_2016_connector.yml' file.
+in the directory with a default 'sharepoint_server_connector.yml' file.
 
 Bootstrapping
 -------------
@@ -66,7 +66,7 @@ can either get it by creating a new `custom API source <https://www.elastic.co/g
 from the Workplace Search admin dashboard or you can just bootstrap it using the
 'bootstrap.py' file. To use 'bootstrap.py', make sure you have specified
 'enterprise_search.host_url' and 'workplace_search.api_key' in the
-'sharepoint_connector_sharepoint_server_2016_connector.yml' file. Follow the instructions in the Workplace Search guide to `create a Workplace Search API key <https://www.elastic.co/guide/en/workplace-search/current/workplace-search-api-authentication.html#auth-token>`_. 
+'sharepoint_connector_sharepoint_server_connector.yml' file. Follow the instructions in the Workplace Search guide to `create a Workplace Search API key <https://www.elastic.co/guide/en/workplace-search/current/workplace-search-api-authentication.html#auth-token>`_. 
 
 Run the bootstrap command ::
 
@@ -91,7 +91,7 @@ Required fields in the configuration file:
 * enterprise_search.host_url
 * sharepoint.site_collections
 
-Note: The username and password must be of the admin/ system account of the sharepoint server.
+Note: The username and password must be of the admin/ system account of the SharePoint server.
 The remaining parameters are optional and have a default value.
 
 The field ``site_collections`` specifies the site collections whose contents the user wants to fetch and index.
@@ -127,7 +127,7 @@ It's possible to run the connectors as a cron job. A sample crontab file is prov
 You can edit and then add it manually to your crontab with 'crontab -e' or if your system supports cron.d copy or symlink it into '/etc/cron.d/' directory.
 
 The connector will emit logs into stdout and stderr, if logs are needed consider simply piping the output of connectors into
-desired file, for example the crontab if you've put config file into '~/.config/sharepoint-connector-sharepoint_server_2016_connector.yml' and
+desired file, for example the crontab if you've put config file into '~/.config/sharepoint-connector-sharepoint_server_connector.yml' and
 want to have logs in '~/' can look like::
 
     0 */2 * * * ees_sharepoint incremental-sync >> ~/incremental-sync.log
@@ -179,7 +179,7 @@ This command will attempt to to:
 Common Issues
 =============
 
-1. Some of the Sharepoint API endpoint responses have a delay of around 15 minutes.
+1. Some of the SharePoint API endpoint responses have a delay of around 15 minutes.
 The response contains timestamps that are not in sync with the current UTC time. Here is the link to the `issue <https://github.com/SharePoint/sp-dev-docs/issues/5369>`_
 Hence, you might see a delay in fetching recently created/updated documented from the SharePoint
 2. At times, the TIKA server fails to start hence content extraction from attachments may fail. To avoid this, make sure Tika is running in the background.
