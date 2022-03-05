@@ -137,7 +137,7 @@ When items are deleted from SharePoint, a separate process is required to update
 Testing connectivity
 ====================
 
-You can check the connectivity that the SharePoint server and Workplace Search server are using.
+You can check the connectivity between the SharePoint server and Workplace Search server. 
 
 Use the following command ::bash
 
