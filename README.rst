@@ -160,12 +160,12 @@ while the second column is the Workplace Search username.
 Removing files deleted in SharePoint Server from Enterprise Search
 ==================================================================
 
-When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the `deletion-sync` command for deleting the records from Workplace Search.
+When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the 'deletion-sync' command for deleting the records from Workplace Search.
 
 Testing connectivity
 ====================
 
-You can check the connectivity with SharePoint and Workplace Search server using.
+You can check the connectivity between the SharePoint server and Workplace Search server. 
 
 Use the following command ::bash
 
