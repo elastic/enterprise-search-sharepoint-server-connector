@@ -153,7 +153,7 @@ Note: To allow Tika to extract content from images, you need to manually install
 Sync user permissions
 =====================
 
-This functionality will sync any updates to the users and groups in the SharePoint with Workplace. Run the `permission-sync` command to sync user permissions into Workplace Search.
+Run the `permission-sync` command to sync any updates to users and groups in SharePoint Server with Workplace Search
 To sync permissions, you need to provide a path of csv file in the config field: ``sharepoint_workplace_user_mapping``. The first column of each row in this csv is the SharePoint Server AD username 
 while the second column is the Workplace Search username.
 
