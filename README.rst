@@ -1,8 +1,8 @@
-Enterprise Search | Workplace Search | Sharepoint Server Connector
+Enterprise Search | Workplace Search | SharePoint Server Connector
 ===================================================
 
 SharePoint Server is a collaboration platform in the Microsoft 365 solution suite which is often used as a centralized content management system.
-The Sharepoint Server connector provided with Workplace Search automatically synchronizes and enables searching over following items:
+The SharePoint Server connector provided with Workplace Search automatically synchronizes and enables searching over following items:
 
 * Site Collections
 * Sites and Subsites
@@ -15,7 +15,7 @@ If you have a multi-tenant environment, configure one connector instance for eac
 
 This connector supports SharePoint Server versions: 2013, 2016 and 2019
 
-Note: The Sharepoint Server Connector is a **beta** feature. Beta features are subject to change and are not covered by the support SLA of general release (GA) features. Elastic plans to promote this feature to GA in a future release. 
+Note: The SharePoint Server Connector is a **beta** feature. Beta features are subject to change and are not covered by the support SLA of general release (GA) features. Elastic plans to promote this feature to GA in a future release. 
 
 Requirements
 ------------
@@ -43,10 +43,10 @@ After the package is installed, you can open a new shell and run the connector i
 <cmd> is the connector command, such as:
 
 - 'bootstrap' to create a content source in Enterprise Search
-- 'full-sync' to synchronize all data from Sharepoint Server to Enterprise Search
-- 'incremental-sync' to synchronize recent data from Sharepoint Server to Enterprise Search
-- 'deletion-sync' to remove from Enterprise Search the data recently deleted from Sharepoint Server
-- 'permission-sync' to synchronize permissions of the users from Sharepoint Server Enterprise Search
+- 'full-sync' to synchronize all data from SharePoint Server to Enterprise Search
+- 'incremental-sync' to synchronize recent data from SharePoint Server to Enterprise Search
+- 'deletion-sync' to remove from Enterprise Search the data recently deleted from SharePoint Server
+- 'permission-sync' to synchronize permissions of the users from SharePoint Server Enterprise Search
 
 The connector will install the supplied sharepoint_server_2016_connector.yml file into the package data files and use it when run without the -c option.
 You can either edit supplied sharepoint_server_2016_connector.yml file **before** installing the package, or run the connector with '-c <FILE_NAME>' pointing
@@ -91,7 +91,31 @@ Required fields in the configuration file:
 * enterprise_search.host_url
 * sharepoint.site_collections
 
+Note: The username and password must be of the admin/ system account of the sharepoint server.
 The remaining parameters are optional and have a default value.
+
+The field ``site_collections`` specifies the site collections whose contents the user wants to fetch and index.
+For Example, if the wants to fetch collections: Collection1, Collection2, he can provide th following in the cofig file::
+
+sharepoint.site_collections: 
+    - Collection1
+    - Collection2
+
+The field ``object`` Specifies what fields are indexed/excluded in workplace search.
+By default all the fields are added if both the ``exclude_fields`` and ``include_fields`` parameter is not specified. 
+Example:
+
+objects:
+   sites:
+        include_fields:
+             -id
+             -title
+        exclude_fields:
+             -author
+    lists:
+        include_fields:
+             -GUID
+
 
 Running the Connector
 ---------------------
@@ -124,12 +148,16 @@ Note: Indexing of all the subsites is guaranteed only in full sync and not in in
 The connector inherently uses the `Tika module <https://pypi.org/project/tika/>`_ for parsing file contents from attachments. `Tika-python <https://github.com/chrismattmann/tika-python>`_ uses Apache Tika REST server. To use this library, you need to have Java 7+ installed on your system as tika-python starts up the Tika REST server in the background.
 Tika Server also detects contents from images by automatically calling Tesseract OCR. To allow Tika to also extract content from images, you need to make sure tesseract is on your path and then restart tika-server in the backgroud(if it is already running), by doing ``ps aux | grep tika | grep server`` and then ``kill -9 <pid>``
 
+Note: To allow Tika to extract content from images, you need to manually install Tesseract OCR.
+
 Sync user permissions
 =====================
 
-This functionality will sync any updates to the users and groups in the Sharepoint with Workplace. Run the `permission-sync` command to sync user permissions into Workplace Search.
+This functionality will sync any updates to the users and groups in the SharePoint with Workplace. Run the `permission-sync` command to sync user permissions into Workplace Search.
+To sync permissions, you need to provide a path of csv file in the config field: ``sharepoint_workplace_user_mapping``. The first column of each row in this csv is the SharePoint Server AD username 
+while the second column is the Workplace Search username.
 
-Removing files deleted in Sharepoint Server from Enterprise Search
+Removing files deleted in SharePoint Server from Enterprise Search
 ==================================================================
 
 When items are deleted from SharePoint, a separate process is required to update Workplace Search accordingly. Run the `deletion-sync` command for deleting the records from Workplace Search.
@@ -137,7 +165,7 @@ When items are deleted from SharePoint, a separate process is required to update
 Testing connectivity
 ====================
 
-You can check the connectivity with Sharepoint and Workplace Search server using.
+You can check the connectivity with SharePoint and Workplace Search server using.
 
 Use the following command ::bash
 
@@ -145,8 +173,16 @@ Use the following command ::bash
 
 This command will attempt to to:
 * check connectivity with Workplace Search
-* check connectivity with Sharepoint
+* check connectivity with SharePoint
 * test the basic ingestion and deletion to the Workplace Search
+
+Common Issues
+=============
+
+1. Some of the Sharepoint API endpoint responses have a delay of around 15 minutes.
+The response contains timestamps that are not in sync with the current UTC time. Here is the link to the `issue <https://github.com/SharePoint/sp-dev-docs/issues/5369>`_
+Hence, you might see a delay in fetching recently created/updated documented from the SharePoint
+2. At times, the TIKA server fails to start hence content extraction from attachments may fail. To avoid this, make sure Tika is running in the background.
 
 Where can I go to get help?
 ===========================
