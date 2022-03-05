@@ -26,9 +26,11 @@ This connector requires:
 * Workplace Search >= 7.13.0 and a Platinum+ license.
 * Java 7 or higher
 * SharePoint Server 2013, 2016 or 2019 
+* Windows, MacOS or Linux Server (Latest tests occurred on CentOS 7, MacOS (Monterey v12.0.1), &  Windows 10) 
 
 Installation
 ------------
+
 This connector is a python package that can be installed as a package locally::
 
     make install_package
@@ -40,13 +42,13 @@ After the package is installed, you can open a new shell and run the connector i
 
 <cmd> is the connector command, such as:
 
-- bootstrap to create a content source in Enterprise Search
-- full-sync to synchronize all data from Sharepoint Server to Enterprise Search
-- incremental-sync to synchronize recent data from Sharepoint Server to Enterprise Search
-- deletion-sync to remove from Enterprise Search the data recently deleted from Sharepoint Server
-- permission-sync to synchronize permissions of the users from Sharepoint Server Enterprise Search
+- 'bootstrap' to create a content source in Enterprise Search
+- 'full-sync' to synchronize all data from Sharepoint Server to Enterprise Search
+- 'incremental-sync' to synchronize recent data from Sharepoint Server to Enterprise Search
+- 'deletion-sync' to remove from Enterprise Search the data recently deleted from Sharepoint Server
+- 'permission-sync' to synchronize permissions of the users from Sharepoint Server Enterprise Search
 
-The connector will install supplied sharepoint_server_2016_connector.yml file into the package data files and use it when ran without -c option.
+The connector will install the supplied sharepoint_server_2016_connector.yml file into the package data files and use it when ran without -c option.
 You can either edit supplied sharepoint_server_2016_connector.yml file **before** installing the package, or run connector with -c <FILE_NAME> pointing
 to the config file you're willing to use, for example::
 
