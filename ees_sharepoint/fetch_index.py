@@ -19,7 +19,7 @@ from tika.tika import TikaException
 
 from .checkpointing import Checkpoint
 from .usergroup_permissions import Permissions
-from .utils import encode, extract
+from .utils import encode, extract, split_in_chunks
 from . import adapter
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
@@ -31,7 +31,7 @@ SITES = "sites"
 LISTS = "lists"
 LIST_ITEMS = "list_items"
 DRIVE_ITEMS = "drive_items"
-DOCUMENT_SIZE = 100
+BATCH_SIZE = 100
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
@@ -79,8 +79,7 @@ class FetchIndex:
         """
         if document:
             total_documents_indexed = 0
-            document_list = [document[i * DOCUMENT_SIZE:(i + 1) * DOCUMENT_SIZE] for i in range((len(document) + DOCUMENT_SIZE - 1) // DOCUMENT_SIZE)]
-            for chunk in document_list:
+            for chunk in split_in_chunks(document, BATCH_SIZE):
                 response = self.workplace_search_client.index_documents(
                     content_source_id=self.ws_source,
                     documents=chunk
@@ -592,9 +591,8 @@ def start(indexing_type, config, logger, workplace_search_client, sharepoint_cli
 
             storage_with_collection["global_keys"][collection] = storage.copy()
 
-            check.set_checkpoint(collection, start_time, indexing_type)
+            check.set_checkpoint(collection, end_time, indexing_type)
     except Exception as exception:
-        check.set_checkpoint(collection, end_time, indexing_type)
         raise exception
 
     with open(IDS_PATH, "w") as file:

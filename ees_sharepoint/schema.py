@@ -156,7 +156,7 @@ schema = {
     'log_level': {
         'required': False,
         'type': 'string',
-        'default': 'info',
+        'default': 'INFO',
         'allowed': ['DEBUG', 'INFO', 'WARN', 'ERROR']
     },
     'retry_count': {

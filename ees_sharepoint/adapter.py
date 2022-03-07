@@ -5,7 +5,7 @@
 #
 """Module containing default schema for data uploaded to Enterprise Search.
 
-This module contains definition of detault schema for the data
+This module contains definition of default schema for the data
 that will be uploaded to Elastic Enterprise Search per each Sharepoint Server object.
 
 Keys for each object represent the fields that will be uploaded to Enterprise Search
