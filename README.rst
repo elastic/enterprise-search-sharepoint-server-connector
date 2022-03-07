@@ -36,6 +36,11 @@ This connector is a python package that can be installed as a package locally::
     make install_package
 
 This will install all pre-requisites for the package and the package itself for the current user.
+In case you use a specific command to run python files, such as 'py', you can add `PYTHON=py` in the above command ::
+
+    make PYTHON_CMD=py install_package 
+
+By default, it uses the command 'python3'
 After the package is installed, you can open a new shell and run the connector itself::
 
     ees_sharepoint <cmd>
