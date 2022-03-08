@@ -23,7 +23,7 @@ from .configuration import Configuration
 def fixture_settings():
     """This function loads config from the file and returns it along with retry_count setting."""
     configuration = Configuration(
-        file_name="sharepoint_server_2016_connector.yml"
+        file_name="sharepoint_server_connector.yml"
     )
 
     logger = logging.getLogger("test_connectivity")
