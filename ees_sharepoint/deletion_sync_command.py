@@ -13,7 +13,7 @@ import os
 import requests
 
 from .base_command import BaseCommand
-from .utils import split_list_in_chunks
+from .utils import split_list_into_buckets
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
 # By default, Enterprise Search configuration has a maximum allowed limit set to 100 documents for an api request
@@ -58,7 +58,7 @@ class DeletionSyncCommand(BaseCommand):
                         if resp.status_code == requests.codes['not_found'] or result == []:
                             doc.append(item_id)
                     if doc:
-                        for chunk in split_list_in_chunks(doc, BATCH_SIZE):
+                        for chunk in split_list_into_buckets(doc, BATCH_SIZE):
                             self.workplace_search_client.delete_documents(
                                 content_source_id=self.ws_source,
                                 document_ids=chunk)
@@ -101,7 +101,7 @@ class DeletionSyncCommand(BaseCommand):
                     resp = self.sharepoint_client.get(url, '', "deindex")
                     if resp is not None and resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
-                for chunk in split_list_in_chunks(doc, BATCH_SIZE):
+                for chunk in split_list_into_buckets(doc, BATCH_SIZE):
                     self.workplace_search_client.delete_documents(
                         content_source_id=self.ws_source,
                         document_ids=chunk)
@@ -132,7 +132,7 @@ class DeletionSyncCommand(BaseCommand):
                 resp = self.sharepoint_client.get(url, '', "deindex")
                 if resp is not None and resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
-            for chunk in split_list_in_chunks(doc, BATCH_SIZE):
+            for chunk in split_list_into_buckets(doc, BATCH_SIZE):
                 self.workplace_search_client.delete_documents(
                     content_source_id=self.ws_source,
                     document_ids=chunk)

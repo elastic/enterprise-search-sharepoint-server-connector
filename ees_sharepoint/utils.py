@@ -9,6 +9,7 @@ import urllib.parse
 
 from tika import parser
 from datetime import datetime
+from multiprocessing.pool import ThreadPool
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 
@@ -32,7 +33,7 @@ def encode(object_name):
     return name.replace("'", "''")
 
 
-def partition_equal_share(object_list, total_groups):
+def split_list_into_buckets(object_list, total_groups):
     """ Divides the list in groups of approximately equal sizes
         :param object_list: list to be partitioned
         :param total_groups: number of groups to be formed
@@ -45,20 +46,6 @@ def partition_equal_share(object_list, total_groups):
         return group_list
     else:
         return []
-
-
-def split_list_in_chunks(input_list, chunk_size):
-    """ This method splits a list into separate chunks with maximum size
-        as chunk_size
-        :param input_list: List to be partitioned into chunks
-        :param chunk_size: Maximum size of a chunk
-        Returns:
-            list_of_chunks: List containing the chunks
-    """
-    list_of_chunks = []
-    for i in range(0, len(input_list), chunk_size):
-        list_of_chunks.append(input_list[i:i + chunk_size])
-    return list_of_chunks
 
 
 def split_dict_in_chunks(input_dict, chunk_size):
@@ -76,29 +63,27 @@ def split_dict_in_chunks(input_dict, chunk_size):
     return list_of_chunks
 
 
-def datetime_partitioning(start_time, end_time, processes):
-    """ Divides the timerange in equal partitions by number of processors
+def split_date_range_into_chunks(start_time, end_time, number_of_threads):
+    """ Divides the timerange in equal partitions by number of threads
         :param start_time: start time of the interval
         :param end_time: end time of the interval
-        :param processes: number of processors the device have
+        :param number_of_threads: number of threads defined by user in config file
     """
     start_time = datetime.strptime(start_time, DATETIME_FORMAT)
     end_time = datetime.strptime(end_time, DATETIME_FORMAT)
 
-    diff = (end_time - start_time) / processes
-    for idx in range(processes):
-        yield start_time + diff * idx
-    yield end_time
-
-
-def get_partition_time(max_threads, start_time, end_time):
-    """ Divides the time range of indexing into partitions based on number of processes.
-        :param max_threads: Number of threads in multithreading
-        :param start_time: Start time of a time range
-        :param end_time: End time of a time range
-    """
-    partitions = list(datetime_partitioning(start_time, end_time, max_threads))
+    diff = (end_time - start_time) / number_of_threads
     datelist = []
-    for sub in partitions:
-        datelist.append(sub.strftime(DATETIME_FORMAT))
-    return end_time, datelist
+    for idx in range(number_of_threads):
+        date_time = start_time + diff * idx
+        datelist.append(date_time.strftime(DATETIME_FORMAT))
+    formatted_end_time = end_time.strftime(DATETIME_FORMAT)
+    datelist.append(formatted_end_time)
+    return formatted_end_time, datelist
+
+
+def spawn_threads(max_threads):
+    """ Spawns number of threads provided by user in the config file
+        :param max_threads: maximum number of threads defined by user
+    """
+    return ThreadPool(max_threads)

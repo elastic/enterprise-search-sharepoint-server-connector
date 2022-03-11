@@ -16,11 +16,10 @@ from urllib.parse import urljoin
 from dateutil.parser import parse
 
 from tika.tika import TikaException
-from multiprocessing.pool import ThreadPool
 
 from .checkpointing import Checkpoint
 from .usergroup_permissions import Permissions
-from .utils import encode, extract, partition_equal_share, split_list_in_chunks, get_partition_time, split_dict_in_chunks
+from .utils import encode, extract, split_list_into_buckets, split_date_range_into_chunks, split_dict_in_chunks, spawn_threads
 from . import adapter
 
 IDS_PATH = os.path.join(os.path.dirname(__file__), 'doc_id.json')
@@ -79,7 +78,7 @@ class FetchIndex:
         """
         if document:
             total_documents_indexed = 0
-            for chunk in split_list_in_chunks(document, BATCH_SIZE):
+            for chunk in split_list_into_buckets(document, BATCH_SIZE):
                 response = self.workplace_search_client.index_documents(
                     content_source_id=self.ws_source,
                     documents=chunk
@@ -97,8 +96,8 @@ class FetchIndex:
             :param document: documents to be indexed equally in each thread
             :param param_name: parameter name whether it is SITES, LISTS LIST_ITEMS OR DRIVE_ITEMS
         """
-        chunk_documents = partition_equal_share(document, self.max_threads)
-        thread_pool = ThreadPool(self.max_threads)
+        chunk_documents = split_list_into_buckets(document, self.max_threads)
+        thread_pool = spawn_threads(self.max_threads)
         for doc in chunk_documents:
             thread_pool.apply_async(self.index_document, (doc, param_name))
 
@@ -458,15 +457,17 @@ class FetchIndex:
             groups.append(title)
         return groups
 
-    def index_sites(self, parent_site_url, ids, sites_path):
+    def index_sites(self, ids, end_time, collection):
         """ Indexes the site details to the Workplace Search
-            :param parent_site_url: parent site relative path
             :param ids: id collection of the all the objects
-            :param sites_path: dictionary of site path and it's last updated time
+            :param end_time: end time for fetching the data
+            :param collection: collection name
         """
-        _, datelist = get_partition_time(self.max_threads, self.start_time, self.end_time)
+        _, datelist = split_date_range_into_chunks(self.start_time, self.end_time, self.max_threads)
         results = []
-        thread_pool = ThreadPool(self.max_threads)
+        parent_site_url = f"/sites/{collection}"
+        sites_path = [{parent_site_url: end_time}]
+        thread_pool = spawn_threads(self.max_threads)
         for num in range(0, self.max_threads):
             start_time_partition = datelist[num]
             end_time_partition = datelist[num + 1]
@@ -484,17 +485,16 @@ class FetchIndex:
         thread_pool.join()
         self.threaded_index_documents(documents, SITES)
         sites_path.extend(sites)
+        return sites_path
 
-    def index_lists(self, sites_path, ids, lists_details, libraries_details):
+    def index_lists(self, sites_path, ids):
         """ Indexes the list details to the Workplace Search
             :param sites_path: dictionary of site path and it's last updated time
             :param ids: id collection of the all the objects
-            :param lists_details: dictionary containing list name, list path and id
-            :param libraries_details: dictionary containing library name, library path and id
         """
-        results = []
-        thread_pool = ThreadPool(self.max_threads)
-        partitioned_sites = partition_equal_share(sites_path, self.max_threads)
+        results, lists_details, libraries_details = [], {}, {}
+        thread_pool = spawn_threads(self.max_threads)
+        partitioned_sites = split_list_into_buckets(sites_path, self.max_threads)
         for site in partitioned_sites:
             thread = thread_pool.apply_async(self.fetch_lists, (site, ids, (LISTS in self.objects)))
             results.append(thread)
@@ -507,26 +507,19 @@ class FetchIndex:
         thread_pool.close()
         thread_pool.join()
         self.threaded_index_documents(documents, LISTS)
+        return [lists_details, libraries_details]
 
-    def index_items(self, job_type, lists_details, libraries_details, ids):
-        """ Indexes the list_items and drive_items to the Workplace Search
-            :param job_type: denotes the type of sharepoint object being fetched in a particular process
+    def index_list_items(self, lists_details, ids):
+        """ Indexes the list_items to the Workplace Search
             :param lists_details: dictionary containing list name, list path and id
-            :param libraries_details: dictionary containing library name, library path and id
             :param ids: id collection of the all the objects
         """
         results = []
         partition = []
-        if job_type == "list_items" and LIST_ITEMS in self.objects:
-            thread_pool = ThreadPool(self.max_threads)
-            func = self.fetch_items
-            partition = split_dict_in_chunks(lists_details, self.max_threads)
-        elif job_type == "drive_items" and DRIVE_ITEMS in self.objects:
-            thread_pool = ThreadPool(self.max_threads)
-            func = self.fetch_drive_items
-            partition = split_dict_in_chunks(libraries_details, self.max_threads)
+        thread_pool = spawn_threads(self.max_threads)
+        partition = split_dict_in_chunks(lists_details, self.max_threads)
         for list_data in partition:
-            thread = thread_pool.apply_async(func, (list_data, ids))
+            thread = thread_pool.apply_async(self.fetch_items, (list_data, ids))
             results.append(thread)
         documents = []
         for result in [r.get() for r in results]:
@@ -534,28 +527,49 @@ class FetchIndex:
                 documents.extend(result)
         thread_pool.close()
         thread_pool.join()
-        self.threaded_index_documents(documents, job_type)
+        self.threaded_index_documents(documents, LIST_ITEMS)
 
-    def indexing(self, collection, ids, storage, job_type, parent_site_url, sites_path, lists_details, libraries_details):
+    def index_drive_items(self, libraries_details, ids):
+        """ Indexes the drive_items to the Workplace Search
+            :param libraries_details: dictionary containing library name, library path and id
+            :param ids: id collection of the all the objects
+        """
+        results = []
+        partition = []
+        thread_pool = spawn_threads(self.max_threads)
+        partition = split_dict_in_chunks(libraries_details, self.max_threads)
+        for list_data in partition:
+            thread = thread_pool.apply_async(self.fetch_drive_items, (list_data, ids))
+            results.append(thread)
+        documents = []
+        for result in [r.get() for r in results]:
+            if result:
+                documents.extend(result)
+        thread_pool.close()
+        thread_pool.join()
+        self.threaded_index_documents(documents, DRIVE_ITEMS)
+
+    def indexing(self, collection, ids, storage, job_type, collected_objects, end_time):
         """This method fetches all the objects from sharepoint server and
             ingests them into the workplace search
             :param collection: collection name
             :param ids: id collection of the all the objects
             :param storage: temporary storage for storing all the documents
             :param job_type: denotes the type of sharepoint object being fetched in a particular process
-            :param parent_site_url: parent site relative path
-            :param sites_path: dictionary of site path and it's last updated time
-            :param lists_details: dictionary containing list name, list path and id
-            :param libraries_details: dictionary containing library name, library path and id
+            :param collected_objects: helper variable to provide the data to children object
+            :param end_time: end time for fetching the data
         """
         if job_type == "sites":
-            self.index_sites(parent_site_url, ids, sites_path)
+            collected_objects = self.index_sites(ids, end_time, collection)
 
         elif job_type == "lists":
-            self.index_lists(sites_path, ids, lists_details, libraries_details)
+            collected_objects = self.index_lists(collected_objects, ids)
 
-        elif job_type in ["list_items", "drive_items"]:
-            self.index_items(job_type, lists_details, libraries_details, ids)
+        elif job_type == LIST_ITEMS and LIST_ITEMS in self.objects:
+            self.index_list_items(collected_objects[0], ids)
+
+        elif job_type == DRIVE_ITEMS and DRIVE_ITEMS in self.objects:
+            self.index_drive_items(collected_objects[1], ids)
 
         self.logger.info(
             "Completed fetching all the objects for site collection: %s"
@@ -578,6 +592,7 @@ class FetchIndex:
                     for list_name in list_content.keys():
                         prev_ids[site][list_name] = list(set([*prev_ids[site].get(list_name, []), *ids[job_type][site][list_name]]))
             storage[job_type] = prev_ids
+        return collected_objects
 
 
 def start(indexing_type, config, logger, workplace_search_client, sharepoint_client):
@@ -625,27 +640,22 @@ def start(indexing_type, config, logger, workplace_search_client, sharepoint_cli
                 ids_collection["global_keys"][collection] = {
                     "sites": {}, "lists": {}, "list_items": {}, "drive_items": {}}
 
-            parent_site_url = f"/sites/{collection}"
-            sites_path = [{parent_site_url: end_time}]
-            lists_details = {}
-            libraries_details = {}
             logger.info(
                 "Starting to index all the objects configured in the object field: %s"
                 % (str(config.get_value("objects")))
             )
 
             indexer = FetchIndex(config, logger, workplace_search_client, sharepoint_client, start_time, end_time)
+            returned_documents = None
             for job_type in ["sites", "lists", "list_items", "drive_items"]:
                 logger.info(f"Indexing {job_type}")
-                indexer.indexing(
+                returned_documents = indexer.indexing(
                     collection,
                     ids_collection["global_keys"][collection],
                     storage,
                     job_type,
-                    parent_site_url,
-                    sites_path,
-                    lists_details,
-                    libraries_details
+                    returned_documents,
+                    end_time
                 )
 
             storage_with_collection["global_keys"][collection] = storage.copy()
