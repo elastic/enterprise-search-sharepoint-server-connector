@@ -1,16 +1,16 @@
 ---
 
 - job:
-    name: ent-search-ingestion/sharepoint-server-2016-connector
+    name: ent-search-ingestion/sharepoint-server-connector
     description: "Runs tests and linters against the repository."
     project-type: multibranch
     node: master
     concurrent: true
-    script-path: .ci/pipelines/ent-search-connector-sharepoint-server-2016.groovy
+    script-path: .ci/pipelines/ent-search-connector-sharepoint-server.groovy
     prune-dead-branches: true
     scm:
       - github:
-          repo: enterprise-search-sharepoint-server-2016-connector
+          repo: enterprise-search-sharepoint-server-connector
           repo-owner: elastic
           disable-pr-notifications: true
           branch-discovery: all

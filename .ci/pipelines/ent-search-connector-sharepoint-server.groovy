@@ -9,8 +9,8 @@
 
 eshPipeline(
     timeout: 45,
-    project_name: 'Enterprise Search Sharepoint Server 2016 Connector',
-    repository: 'enterprise-search-sharepoint-server-2016-connector',
+    project_name: 'Enterprise Search Sharepoint Server Connector',
+    repository: 'enterprise-search-sharepoint-server-connector',
     stages: [
         [
             name: 'Linting',
