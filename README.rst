@@ -40,6 +40,8 @@ In case you use a specific command to run python files, such as 'py', you can ad
 
     make PYTHON_CMD=py install_package 
 
+By default, it uses the command 'python3'
+
 Note: If you are running the connector on a Windows environment, you need to install 'make' from the command Prompt via ::
 
     winget install make
@@ -52,7 +54,6 @@ Windows: '\Users\<user_name>\AppData\Roaming\Python\Python38\Scripts'
 
 Considering you are using python 3.8
 
-By default, it uses the command 'python3'
 After the package is installed, you can open a new shell and run the connector itself::
 
     ees_sharepoint <cmd>
