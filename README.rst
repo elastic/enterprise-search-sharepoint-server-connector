@@ -41,6 +41,19 @@ In case you use a specific command to run python files, such as 'py', you can ad
     make PYTHON_CMD=py install_package 
 
 By default, it uses the command 'python3'
+
+Note: If you are running the connector on a Windows environment, you need to install 'make' from the command Prompt via ::
+
+    winget install make
+
+Further, provide the path of ees_sharepoint executable in the environment variables, if not available. By default, the package is installed in following paths:
+
+MacOS: '/Users/<user_name>/Library/Python/3.8/bin'
+Linux: './local/bin'
+Windows: '\Users\<user_name>\AppData\Roaming\Python\Python38\Scripts'
+
+Considering you are using python 3.8
+
 After the package is installed, you can open a new shell and run the connector itself::
 
     ees_sharepoint <cmd>
@@ -59,7 +72,9 @@ to the config file you're willing to use, for example::
 
     ees_sharepoint -c ~/server-1-sharepoint_server_connector.yml full-sync
 
-By default the connector will put its default config file into a `config` directory along the executable. To find the config file
+Note: -c option is optional only for Linux environments. For Windows and MacOS the user needs to provide the config file via -c option.
+
+In Linux, By default the connector will put its default config file into a `config` directory along the executable. To find the config file
 you can run 'which ees_sharepoint' to see where the executable of the connector is, then run 'cd ../config' and you'll find yourself
 in the directory with a default 'sharepoint_server_connector.yml' file.
 
@@ -135,10 +150,10 @@ The connector will emit logs into stdout and stderr, if logs are needed consider
 desired file, for example the crontab if you've put config file into '~/.config/sharepoint-connector-sharepoint_server_connector.yml' and
 want to have logs in '~/' can look like::
 
-    0 */2 * * * ees_sharepoint incremental-sync >> ~/incremental-sync.log
-    0 0 */2 * * ees_sharepoint full-sync >> ~/full-sync.log
-    0 * * * * ees_sharepoint deletion-sync >> ~/deletion-sync.log
-    */5 * * * * ees_sharepoint permission-sync >> ~/permission-sync.log
+    0 */2 * * * ees_sharepoint incremental-sync >> ~/incremental-sync.log 2>&1
+    0 0 */2 * * ees_sharepoint full-sync >> ~/full-sync.log 2>&1
+    0 * * * * ees_sharepoint deletion-sync >> ~/deletion-sync.log 2>&1
+    */5 * * * * ees_sharepoint permission-sync >> ~/permission-sync.log 2>&1
 
 Indexing
 ========
