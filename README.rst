@@ -1,3 +1,6 @@
+.. image:: https://github.com/elastic/enterprise-search-sharepoint-server-connector/blob/main/logo-enterprise-search.png
+    :alt: Elastic Enterprise Search 
+    
 Enterprise Search | Workplace Search | SharePoint Server Connector
 ===================================================
 
