@@ -7,13 +7,14 @@
 
 It will attempt to remove from Enterprise Search instance the documents
 that have been deleted from the third-party system."""
-import os
 import csv
+import os
+
+from ees_sharepoint.base_command import BaseCommand
 
 from .checkpointing import Checkpoint
+from .sync_sharepoint import get_results
 from .usergroup_permissions import Permissions
-from .fetch_index import get_results
-from ees_sharepoint.base_command import BaseCommand
 
 
 class PermissionSyncDisabledException(Exception):
@@ -33,6 +34,7 @@ class PermissionSyncCommand(BaseCommand):
 
     It can be used to run the job that will periodically sync permissions
     from Sharepoint Server to Elastic Enteprise Search."""
+
     def __init__(self, args):
         super().__init__(args)
 
@@ -47,8 +49,8 @@ class PermissionSyncCommand(BaseCommand):
         self.permissions = Permissions(self.sharepoint_client, self.workplace_search_client, self.logger)
 
     def get_users_id(self):
-        """ This method returns the dictionary of dictionaries containing users and their id
-            as a key value pair for all the site-collections."""
+        """This method returns the dictionary of dictionaries containing users and their id
+        as a key value pair for all the site-collections."""
         user_ids = {}
         for collection in self.site_collections:
             user_id_collection = {}
@@ -65,8 +67,8 @@ class PermissionSyncCommand(BaseCommand):
         return user_ids
 
     def get_user_groups(self, user_ids):
-        """ This method returns the groups of each user in all the site-collections
-            :param user_ids: user ids to fetch the groups of the specific user"""
+        """This method returns the groups of each user in all the site-collections
+        :param user_ids: user ids to fetch the groups of the specific user"""
         user_group = {}
         for collection in self.site_collections:
             user_group_collection = {}
@@ -76,41 +78,34 @@ class PermissionSyncCommand(BaseCommand):
                 if response:
                     groups = get_results(self.logger, response.json(), "user_groups")
                     if groups:
-                        user_group_collection[name] = [group['Title'] for group in groups]
+                        user_group_collection[name] = [group["Title"] for group in groups]
             user_group.update({collection: user_group_collection})
         return user_group
 
     def workplace_add_permission(self, permissions):
-        """ This method when invoked would index the permission provided in the paramater
-            for the user in paramter user_name
-            :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection."""
+        """This method when invoked would index the permission provided in the paramater
+        for the user in paramter user_name
+        :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection."""
         for collection in self.site_collections:
             for user_name, permission_list in permissions[collection].items():
                 try:
                     self.workplace_search_client.add_user_permissions(
                         content_source_id=self.ws_source,
                         user=user_name,
-                        body={
-                            "permissions": permission_list
-                        },
+                        body={"permissions": permission_list},
                     )
-                    self.logger.info(
-                        "Successfully indexed the permissions for user %s to the workplace" % (
-                            user_name
-                        )
-                    )
+                    self.logger.info("Successfully indexed the permissions for user %s to the workplace" % (user_name))
                 except Exception as exception:
                     self.logger.exception(
-                        "Error while indexing the permissions for user: %s to the workplace. Error: %s" % (
-                            user_name, exception
-                        )
+                        "Error while indexing the permissions for user: %s to the workplace. Error: %s"
+                        % (user_name, exception)
                     )
 
     def sync_permissions(self):
-        """ This method when invoked, checks the permission of SharePoint users and update those user
-            permissions in the Workplace Search."""
+        """This method when invoked, checks the permission of SharePoint users and update those user
+        permissions in the Workplace Search."""
         rows = {}
-        if (os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0):
+        if os.path.exists(self.mapping_sheet_path) and os.path.getsize(self.mapping_sheet_path) > 0:
             with open(self.mapping_sheet_path) as file:
                 csvreader = csv.reader(file)
                 for row in csvreader:
@@ -133,7 +128,7 @@ class PermissionSyncCommand(BaseCommand):
                 self.workplace_add_permission(user_groups)
 
     def execute(self):
-        """ Runs the permission indexing logic"""
+        """Runs the permission indexing logic"""
 
         logger = self.logger
         config = self.config
@@ -141,6 +136,6 @@ class PermissionSyncCommand(BaseCommand):
 
         enable_permission = config.get_value("enable_document_permission")
         if not enable_permission:
-            logger.warn('Exiting as the enable permission flag is set to False')
+            logger.warn("Exiting as the enable permission flag is set to False")
             raise PermissionSyncDisabledException
         self.sync_permissions()

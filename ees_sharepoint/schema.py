@@ -165,10 +165,16 @@ schema = {
         'default': 3,
         'min': 1
     },
-    'max_threads': {
+    'sharepoint_sync_thread_count': {
         'required': False,
         'type': 'integer',
-        'default': 40,
+        'default': 5,
+        'min': 1
+    },
+    'enterprise_search_sync_thread_count': {
+        'required': False,
+        'type': 'integer',
+        'default': 5,
         'min': 1
     },
     'sharepoint_workplace_user_mapping': {
