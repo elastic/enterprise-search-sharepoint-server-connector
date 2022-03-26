@@ -18,6 +18,7 @@ from multiprocessing.pool import ThreadPool
 from tika.tika import TikaException
 
 from . import adapter
+from .base_command import BaseCommand
 from .checkpointing import Checkpoint
 from .usergroup_permissions import Permissions
 from .utils import (
@@ -563,19 +564,22 @@ class SyncSharepoint:
         return collected_objects
 
 
-def init_sharepoint_sync(indexing_type, config, logger, workplace_search_client, sharepoint_client, queue):
+def init_sharepoint_sync(indexing_type, config, logger, queue, args):
     """Initialize the process for synching
     :param indexing_type: The type of the indexing i.e. incremental or full
     :param config: instance of Configuration class
     :param logger: instance of Logger class
-    :param workplace_search_client: instance of WorkplaceSearch
-    :param sharepoint_client: instance of SharePoint
     :param queue: Shared queue to push the objects fetched from SharePoint
+    :param args: The command line arguments passed from the base command
     """
     logger.info(f"Starting the {indexing_type} indexing..")
     current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
     ids_collection = {"global_keys": {}}
     storage_with_collection = {"global_keys": {}, "delete_keys": {}}
+    # Added this workaround of initializing the base_command since workplace_search_client and sharepoint_client cannot be passed in the Process argument as doing so would throw pickling errors on Windows
+    base_command = BaseCommand(args)
+    workplace_search_client = base_command.workplace_search_client
+    sharepoint_client = base_command.sharepoint_client
 
     if os.path.exists(IDS_PATH) and os.path.getsize(IDS_PATH) > 0:
         with open(IDS_PATH) as ids_store:

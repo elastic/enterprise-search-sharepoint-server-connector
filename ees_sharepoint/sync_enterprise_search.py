@@ -5,6 +5,7 @@
 #
 from multiprocessing.pool import ThreadPool
 from .utils import split_documents_into_equal_chunks
+from .base_command import BaseCommand
 from .checkpointing import Checkpoint
 
 BATCH_SIZE = 100
@@ -65,12 +66,15 @@ class SyncEnterpriseSearch:
         self.thread_pool.join()
 
 
-def init_enterprise_search_sync(config, logger, workplace_search_client, queue):
+def init_enterprise_search_sync(config, logger, queue, args):
     """Runs the indexing logic
     :param config: instance of Configuration class
     :param logger: instance of Logger class
-    :param workplace_search_client: instance of WorkplaceSearch
     :param queue: Shared queue to push the objects fetched from SharePoint
+    :param args: The command line arguments passed from the base command
     """
+    # Added this workaround of initializing the base_command since workplace_search_client and sharepoint_client cannot be passed in the Process argument as doing so would throw pickling errors on Windows
+    base_command = BaseCommand(args)
+    workplace_search_client = base_command.workplace_search_client
     indexer = SyncEnterpriseSearch(config, logger, workplace_search_client, queue)
     indexer.perform_sync()

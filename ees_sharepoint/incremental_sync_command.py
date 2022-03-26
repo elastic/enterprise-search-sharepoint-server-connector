@@ -24,21 +24,20 @@ class IncrementalSyncCommand(BaseCommand):
         """This function execute the start function."""
         config = self.config
         logger = self.logger
-        workplace_search_client = self.workplace_search_client
-        sharepoint_client = self.sharepoint_client
+        args = self.args
 
         queue = ConnectorQueue()
         producer = Process(
             name="producer",
             target=init_sharepoint_sync,
-            args=("incremental", config, logger, workplace_search_client, sharepoint_client, queue),
+            args=("incremental", config, logger, queue, args),
         )
         producer.start()
 
         consumer = Process(
             name="consumer",
             target=init_enterprise_search_sync,
-            args=(config, logger, workplace_search_client, queue),
+            args=(config, logger, queue, args),
         )
         consumer.start()
 
