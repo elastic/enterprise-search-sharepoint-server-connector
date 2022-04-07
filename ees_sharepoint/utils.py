@@ -5,9 +5,10 @@
 #
 """This module contains uncategorized utility methods."""
 
-import urllib.parse
 import copy
+import urllib.parse
 from datetime import datetime
+
 from tika import parser
 
 DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -91,7 +92,9 @@ def get_storage_with_collection(local_storage, collection):
     """
     storage_with_collection = {"global_keys": {}, "delete_keys": {}}
     ids_collection = local_storage.load_storage()
-    storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
+    storage_with_collection["delete_keys"] = copy.deepcopy(
+        ids_collection.get("global_keys")
+    )
     if not ids_collection["global_keys"].get(collection):
         ids_collection["global_keys"][collection] = {
             "sites": {},
@@ -99,6 +102,8 @@ def get_storage_with_collection(local_storage, collection):
             "list_items": {},
             "drive_items": {},
         }
-    storage_with_collection["global_keys"][collection] = copy.deepcopy(ids_collection["global_keys"][collection])
+    storage_with_collection["global_keys"][collection] = copy.deepcopy(
+        ids_collection["global_keys"][collection]
+    )
 
     return storage_with_collection

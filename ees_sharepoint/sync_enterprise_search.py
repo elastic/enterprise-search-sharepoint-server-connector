@@ -41,9 +41,9 @@ class SyncEnterpriseSearch:
                             "Error while indexing %s. Error: %s"
                             % (response["id"], response["errors"])
                         )
-            self.logger.info(
-                f"[{threading.get_ident()}] Successfully indexed {total_documents_indexed} documents to the workplace"
-            )
+                self.logger.info(
+                    f"[{threading.get_ident()}] Successfully indexed {total_documents_indexed} documents to the workplace"
+                )
         except Exception as exception:
             self.logger.exception(f"Error while indexing the files. Error: {exception}")
             raise exception
@@ -79,4 +79,6 @@ class SyncEnterpriseSearch:
                 ):
                     self.index_documents(chunk)
         except Exception as exception:
-            self.logger.error(f"Error while indexing the documents to the Enterprise Search. Error {exception}")
+            self.logger.error(
+                f"Error while indexing the documents to the Enterprise Search. Error {exception}"
+            )

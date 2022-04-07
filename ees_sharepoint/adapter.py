@@ -23,6 +23,7 @@ DEFAULT_SCHEMA = {
     'lists': {
         'created_at': 'Created',
         'id': 'Id',
+        'last_updated': 'LastItemModifiedDate',
         'relative_url': 'ParentWebUrl',
         'title': 'Title'
     },
@@ -30,6 +31,7 @@ DEFAULT_SCHEMA = {
         'title': 'Title',
         'id': 'GUID',
         'created_at': 'Created',
+        'last_updated': 'Modified',
         'author_id': 'AuthorId'
     },
     'drive_items': {
