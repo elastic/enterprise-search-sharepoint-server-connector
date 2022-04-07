@@ -472,7 +472,7 @@ sharepoint.password: 'L,Ct%ddUvNTE5zk;GsDk^2w)(;,!aJ|Ip!?Oi'
 
 #### `sharepoint.host_url` (required)
 
-The address of the SharePoint farm.
+The address of the SharePoint farm. The port should represent the web application containing the site collections, not Central Administration.
 
 ```yaml
 sharepoint.host_url: https://example.com:14682/
@@ -589,7 +589,7 @@ sharepoint_workplace_user_mapping: 'C:/Users/banon/sharepoint_1/identity_mapping
 
 The SharePoint Server connector package is compatible with Elastic deployments that meet the following criteria:
 
-- Elastic Enterprise Search version 7.13.0 or later.
+- Elastic Enterprise Search version greater than or equal to 7.13.0 and less than 8.0.0.
 - An Elastic subscription that supports this feature. Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic.co/subscriptions/cloud) and [self-managed](https://www.elastic.co/subscriptions) deployments.
 
 #### SharePoint Server compatibility
