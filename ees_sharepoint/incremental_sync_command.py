@@ -10,36 +10,79 @@ third-party system recently and ingest them into Enterprise Search instance.
 
 Recency is determined by the time when the last successful incremental or full job
 was ran."""
+from datetime import datetime
+
 from .base_command import BaseCommand
-from .sync_sharepoint import init_sharepoint_sync
+from .checkpointing import Checkpoint
 from .connector_queue import ConnectorQueue
-from .sync_enterprise_search import init_enterprise_search_sync
-from multiprocessing import Process
+from .sync_enterprise_search import SyncEnterpriseSearch
+from .sync_sharepoint import SyncSharepoint
+from .utils import get_storage_with_collection, split_date_range_into_chunks
 
 
 class IncrementalSyncCommand(BaseCommand):
-    """This class start execution of incrementalsync feature."""
+    """This class start execution of incremental sync feature."""
+
+    def start_producer(self, queue):
+        """This method starts async calls for the producer which is responsible for fetching documents from the
+        SharePoint and pushing them in the shared queue
+        :param queue: Shared queue to fetch the stored documents
+        """
+        self.logger.debug("Starting the incremental indexing..")
+        current_time = (datetime.utcnow()).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        thread_count = self.config.get_value("sharepoint_sync_thread_count")
+
+        checkpoint = Checkpoint(self.config, self.logger)
+        try:
+            for collection in self.config.get_value("sharepoint.site_collections"):
+                start_time, end_time = checkpoint.get_checkpoint(collection, current_time)
+                sync_sharepoint = SyncSharepoint(
+                    self.config,
+                    self.logger,
+                    self.workplace_search_client,
+                    self.sharepoint_client,
+                    start_time,
+                    end_time,
+                    queue,
+                )
+                _, datelist = split_date_range_into_chunks(
+                    start_time,
+                    end_time,
+                    thread_count,
+                )
+                storage_with_collection = get_storage_with_collection(self.local_storage, collection)
+                self.logger.info(
+                    "Starting to index all the objects configured in the object field: %s"
+                    % (str(self.config.get_value("objects")))
+                )
+
+                ids = storage_with_collection["global_keys"][collection]
+                storage_with_collection["global_keys"][collection] = sync_sharepoint.fetch_records_from_sharepoint(self.producer, datelist, thread_count, ids, collection)
+
+                queue.put_checkpoint(collection, end_time, "incremental")
+
+            enterprise_thread_count = self.config.get_value("enterprise_search_sync_thread_count")
+            for _ in range(enterprise_thread_count):
+                queue.end_signal()
+        except Exception as exception:
+            self.logger.exception(f"Error while fetching the objects . Error {exception}")
+            raise exception
+        self.local_storage.update_storage(storage_with_collection)
+
+    def start_consumer(self, queue):
+        """This method starts async calls for the consumer which is responsible for indexing documents to the
+        Enterprise Search
+        :param queue: Shared queue to fetch the stored documents
+        """
+        thread_count = self.config.get_value("enterprise_search_sync_thread_count")
+        sync_es = SyncEnterpriseSearch(self.config, self.logger, self.workplace_search_client, queue)
+
+        self.consumer(thread_count, sync_es.perform_sync)
 
     def execute(self):
         """This function execute the start function."""
-        config = self.config
-        logger = self.logger
-        args = self.args
+        queue = ConnectorQueue(self.logger)
 
-        queue = ConnectorQueue()
-        producer = Process(
-            name="producer",
-            target=init_sharepoint_sync,
-            args=("incremental", config, logger, queue, args),
-        )
-        producer.start()
-
-        consumer = Process(
-            name="consumer",
-            target=init_enterprise_search_sync,
-            args=(config, logger, queue, args),
-        )
-        consumer.start()
-
-        producer.join()
-        consumer.join()
+        self.start_producer(queue)
+        self.start_consumer(queue)

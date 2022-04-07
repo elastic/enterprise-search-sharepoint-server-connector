@@ -6,6 +6,7 @@
 """This module contains uncategorized utility methods."""
 
 import urllib.parse
+import copy
 from datetime import datetime
 from tika import parser
 
@@ -81,3 +82,23 @@ def split_date_range_into_chunks(start_time, end_time, number_of_threads):
     formatted_end_time = end_time.strftime(DATETIME_FORMAT)
     datelist.append(formatted_end_time)
     return formatted_end_time, datelist
+
+
+def get_storage_with_collection(local_storage, collection):
+    """Returns a dictionary containing the locally stored IDs of files fetched from network drives
+    :param local_storage: The object of the local storage used to store the indexed document IDs
+    :param collection: The SharePoint server collection which is currently being fetched
+    """
+    storage_with_collection = {"global_keys": {}, "delete_keys": {}}
+    ids_collection = local_storage.load_storage()
+    storage_with_collection["delete_keys"] = copy.deepcopy(ids_collection.get("global_keys"))
+    if not ids_collection["global_keys"].get(collection):
+        ids_collection["global_keys"][collection] = {
+            "sites": {},
+            "lists": {},
+            "list_items": {},
+            "drive_items": {},
+        }
+    storage_with_collection["global_keys"][collection] = copy.deepcopy(ids_collection["global_keys"][collection])
+
+    return storage_with_collection

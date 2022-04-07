@@ -5,8 +5,6 @@
 #
 import multiprocessing
 from multiprocessing.queues import Queue
-from .utils import split_documents_into_equal_chunks
-
 
 BATCH_SIZE = 100
 
@@ -14,8 +12,9 @@ BATCH_SIZE = 100
 class ConnectorQueue(Queue):
     """Class to support additional queue operations specific to the connector"""
 
-    def __init__(self):
+    def __init__(self, logger):
         ctx = multiprocessing.get_context()
+        self.logger = logger
         super(ConnectorQueue, self).__init__(ctx=ctx)
 
     def end_signal(self):
@@ -32,18 +31,8 @@ class ConnectorQueue(Queue):
         :param indexing_type: The type of the indexing i.e. Full or Incremental
         """
 
-        checkpoint = {"type": "checkpoint", "data": (key, checkpoint_time, indexing_type)}
+        checkpoint = {
+            "type": "checkpoint",
+            "data": (key, checkpoint_time, indexing_type),
+        }
         self.put(checkpoint)
-
-    def append_to_queue(self, documents):
-        """Append documents to the shared queue
-        :param documents: documents fetched from sharepoint
-        """
-        if documents:
-            results = documents
-            # In case documents is object of tuple
-            if isinstance(documents, tuple):
-                results = documents[-1]
-            for chunk in split_documents_into_equal_chunks(results.get("data"), BATCH_SIZE):
-                document = {"type": results.get("type"), "data": chunk}
-                self.put(document)
