@@ -17,7 +17,7 @@ from .checkpointing import Checkpoint
 from .connector_queue import ConnectorQueue
 from .sync_enterprise_search import SyncEnterpriseSearch
 from .sync_sharepoint import SyncSharepoint
-from .utils import get_storage_with_collection, split_date_range_into_chunks
+from .utils import split_date_range_into_chunks
 
 
 class IncrementalSyncCommand(BaseCommand):
@@ -46,12 +46,12 @@ class IncrementalSyncCommand(BaseCommand):
                     end_time,
                     queue,
                 )
-                _, datelist = split_date_range_into_chunks(
+                datelist = split_date_range_into_chunks(
                     start_time,
                     end_time,
                     thread_count,
                 )
-                storage_with_collection = get_storage_with_collection(self.local_storage, collection)
+                storage_with_collection = self.local_storage.get_storage_with_collection(collection)
                 self.logger.info(
                     "Starting to index all the objects configured in the object field: %s"
                     % (str(self.config.get_value("objects")))
