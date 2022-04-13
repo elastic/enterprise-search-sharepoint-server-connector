@@ -26,7 +26,7 @@ install_requires = [
 
 description = ""
 
-with open("README.rst") as f:
+with open("README.md") as f:
     description += f.read() + "\n\n"
 
 

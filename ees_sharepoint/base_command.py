@@ -16,9 +16,13 @@ try:
     from functools import cached_property
 except ImportError:
     from cached_property import cached_property
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from elastic_enterprise_search import WorkplaceSearch
 
 from .configuration import Configuration
+from .local_storage import LocalStorage
 from .sharepoint_client import SharePoint
 
 
@@ -27,13 +31,14 @@ class BaseCommand:
 
     Inherit from it and implement 'execute' method, then add
     code to cli.py to register this command."""
+
     def __init__(self, args):
         self.args = args
 
     def execute(self):
         """Run the command.
 
-        This method is overriden by actual commands with logic
+        This method is overridden by actual commands with logic
         that is specific to each command implementing it."""
         raise NotImplementedError
 
@@ -44,7 +49,7 @@ class BaseCommand:
         log level will be determined by the configuration
         setting log_level.
         """
-        log_level = self.config.get_value('log_level')
+        log_level = self.config.get_value("log_level")
         logger = logging.getLogger(__name__)
         logger.propagate = False
         logger.setLevel(log_level)
@@ -69,13 +74,14 @@ class BaseCommand:
         args = self.args
         host = self.config.get_value("enterprise_search.host_url")
 
-        if hasattr(args, 'user') and args.user:
+        if hasattr(args, "user") and args.user:
             return WorkplaceSearch(
                 f"{host}/api/ws/v1/sources", http_auth=(args.user, args.password)
             )
         else:
             return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources", http_auth=self.config.get_value("workplace_search.api_key")
+                f"{host}/api/ws/v1/sources",
+                http_auth=self.config.get_value("workplace_search.api_key"),
             )
 
     @cached_property
@@ -88,3 +94,33 @@ class BaseCommand:
     def sharepoint_client(self):
         """Get the sharepoint client instance for the running command."""
         return SharePoint(self.config, self.logger)
+
+    @staticmethod
+    def producer(thread_count, func, args, items, wait=False):
+        """Apply async calls using multithreading to the targeted function
+        :param thread_count: Total number of threads to be spawned
+        :param func: The target function on which the async calls would be made
+        :param args: Arguments for the targeted function
+        :param items: iterator of partition
+        :param wait: wait until job completes if true, otherwise returns immediately
+        """
+        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+            futures = (executor.submit(func, *args, item) for item in items)
+            if wait:
+                result = [future.result() for future in as_completed(futures)]
+                return result
+
+    @staticmethod
+    def consumer(thread_count, func):
+        """Apply async calls using multithreading to the targeted function
+        :param thread_count: Total number of threads to be spawned
+        :param func: The target function on which the async calls would be made
+        """
+        with ThreadPoolExecutor(max_workers=thread_count) as executor:
+            for _ in range(thread_count):
+                executor.submit(func)
+
+    @cached_property
+    def local_storage(self):
+        """Get the object for local storage to fetch and update ids stored locally"""
+        return LocalStorage(self.logger)
