@@ -577,6 +577,24 @@ The number of retries to perform when there is a server error. The connector app
 retry_count: 3
 ```
 
+#### `sharepoint_sync_thread_count`
+
+The number of threads the connector will run parallelly for fetching documents from the SharePoint server. By default, the connector uses 5 threads.
+
+```yaml
+sharepoint_sync_thread_count: 5
+```
+
+#### `enterprise_search_sync_thread_count`
+
+The number of threads the connector will run parallelly for indexing documents to the Enterprise Search instance. By default, the connector uses 5 threads.
+
+```yaml
+enterprise_search_sync_thread_count: 5
+```
+
+For the Linux distribution with atleast 2 GB RAM and 4 vCPUs, you can increase the thread counts if the overall CPU and RAM are under utilized i.e. below 60-70%.
+
 #### `sharepoint_workplace_user_mapping`
 
 The pathname of the CSV file containing the user identity mappings for [document-level permissions (DLP)](#use-document-level-permissions-dlp).
