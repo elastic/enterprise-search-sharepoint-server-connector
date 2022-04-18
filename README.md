@@ -579,7 +579,7 @@ retry_count: 3
 
 #### `sharepoint_sync_thread_count`
 
-The number of threads the connector will run parallelly for fetching documents from the SharePoint server. By default, the connector uses 5 threads.
+The number of threads the connector will run in parallel when fetching documents from the SharePoint server. By default, the connector uses 5 threads.
 
 ```yaml
 sharepoint_sync_thread_count: 5
