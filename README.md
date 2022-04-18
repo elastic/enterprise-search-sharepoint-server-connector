@@ -587,7 +587,7 @@ sharepoint_sync_thread_count: 5
 
 #### `enterprise_search_sync_thread_count`
 
-The number of threads the connector will run parallelly for indexing documents to the Enterprise Search instance. By default, the connector uses 5 threads.
+The number of threads the connector will run in parallel when indexing documents to the Enterprise Search instance. By default, the connector uses 5 threads.
 
 ```yaml
 enterprise_search_sync_thread_count: 5
