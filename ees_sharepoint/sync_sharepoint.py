@@ -521,7 +521,7 @@ class SyncSharepoint:
         :param duration: List of time range consisting of the [start_time, end_time]
         """
         start_time, end_time = duration[0], duration[1]
-        parent_site_url = f"/sites/{collection}"
+        parent_site_url = f"{collection}"
         sites_path = [{parent_site_url: self.end_time}]
         sites, documents = self.fetch_sites(
             parent_site_url,

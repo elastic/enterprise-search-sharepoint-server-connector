@@ -54,7 +54,7 @@ class PermissionSyncCommand(BaseCommand):
         user_ids = {}
         for collection in self.site_collections:
             user_id_collection = {}
-            rel_url = f"sites/{collection}/_api/web/siteusers"
+            rel_url = f"{collection}/_api/web/siteusers"
             response = self.sharepoint_client.get(rel_url, "?", "permission_users")
             if not response:
                 self.logger.error("Could not fetch the SharePoint users")
@@ -72,7 +72,7 @@ class PermissionSyncCommand(BaseCommand):
         user_group = {}
         for collection in self.site_collections:
             user_group_collection = {}
-            rel_url = f"sites/{collection}/"
+            rel_url = f"{collection}/"
             for name, user_id in user_ids[collection].items():
                 response = self.permissions.fetch_groups(rel_url, user_id)
                 if response:
