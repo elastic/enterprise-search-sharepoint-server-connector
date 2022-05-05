@@ -138,7 +138,7 @@ This command runs as the current user and installs the connector and its depende
 ℹ️ Within a Windows environment, first install `make`:
 
 ```
-winget install make
+winget install -e --id GnuWin32.Make
 ```
 
 Next, ensure the `ees_sharepoint` executable is on your `PATH`. For example, on macOS:
