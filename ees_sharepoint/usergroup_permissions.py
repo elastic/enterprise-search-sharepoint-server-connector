@@ -16,9 +16,9 @@ DRIVE_ITEMS = "drive_items"
 
 class Permissions:
     """This class encapsulates all module logic."""
-    def __init__(self, sharepoint_client, workplace_search_client, logger):
+    def __init__(self, sharepoint_client, workplace_search_custom_client, logger):
         self.sharepoint_client = sharepoint_client
-        self.workplace_search_client = workplace_search_client
+        self.workplace_search_custom_client = workplace_search_custom_client
         self.logger = logger
 
     def fetch_users(self, key, rel_url, list_id="", item_id=""):
@@ -41,28 +41,16 @@ class Permissions:
             rel_url = rel_url + "/"
         return self.sharepoint_client.get(rel_url, maps[key], "permission_users")
 
-    def remove_all_permissions(self, config):
-        """ Removes all the permissions present in the workplace
-            :param config: configuration data
-        """
-        ws_source = config.get_value("workplace_search.source_id")
+    def remove_all_permissions(self):
+        """ Removes all the permissions present in the workplace"""
         try:
-            user_permission = self.workplace_search_client.list_permissions(
-                content_source_id=ws_source
-            )
+            user_permission = self.workplace_search_custom_client.list_permissions()
 
             if user_permission:
                 self.logger.info("Removing the permissions from the workplace...")
                 permission_list = user_permission['results']
                 for permission in permission_list:
-                    self.workplace_search_client.remove_user_permissions(
-                        content_source_id=ws_source,
-                        user=permission['user'],
-                        body={
-                            "permissions": permission['permissions']
-                        }
-                    )
-                self.logger.info("Successfully removed the permissions from the workplace.")
+                    self.workplace_search_custom_client.remove_permissions(permission)
         except Exception as exception:
             self.logger.exception("Error while removing the permissions from the workplace. Error: %s" % exception)
 

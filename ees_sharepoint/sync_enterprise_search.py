@@ -9,44 +9,39 @@ from .checkpointing import Checkpoint
 from .utils import split_documents_into_equal_chunks
 
 BATCH_SIZE = 100
+CONNECTION_TIMEOUT = 1000
 
 
 class SyncEnterpriseSearch:
     """This class allows ingesting documents to Elastic Enterprise Search."""
 
-    def __init__(self, config, logger, workplace_search_client, queue):
+    def __init__(self, config, logger, workplace_search_custom_client, queue):
         self.config = config
         self.logger = logger
-        self.workplace_search_client = workplace_search_client
-        self.ws_source = config.get_value("workplace_search.source_id")
+        self.workplace_search_custom_client = workplace_search_custom_client
         self.queue = queue
 
     def index_documents(self, documents):
         """This method indexes the documents to the Enterprise Search.
         :param documents: documents to be indexed
         """
-        try:
-            total_documents_indexed = 0
-            if documents:
-                responses = self.workplace_search_client.index_documents(
-                    content_source_id=self.ws_source,
-                    documents=documents,
-                    request_timeout=1000,
-                )
-                for response in responses["results"]:
-                    if not response["errors"]:
-                        total_documents_indexed += 1
-                    else:
-                        self.logger.error(
-                            "Error while indexing %s. Error: %s"
-                            % (response["id"], response["errors"])
-                        )
-                self.logger.info(
-                    f"[{threading.get_ident()}] Successfully indexed {total_documents_indexed} documents to the workplace"
-                )
-        except Exception as exception:
-            self.logger.exception(f"Error while indexing the files. Error: {exception}")
-            raise exception
+        total_documents_indexed = 0
+        if documents:
+            responses = self.workplace_search_custom_client.index_documents(
+                documents=documents,
+                timeout=CONNECTION_TIMEOUT,
+            )
+            for response in responses["results"]:
+                if not response["errors"]:
+                    total_documents_indexed += 1
+                else:
+                    self.logger.error(
+                        "Error while indexing %s. Error: %s"
+                        % (response["id"], response["errors"])
+                    )
+            self.logger.info(
+                f"[{threading.get_ident()}] Successfully indexed {total_documents_indexed} documents to the workplace"
+            )
 
     def perform_sync(self):
         """Pull documents from the queue and synchronize it to the Enterprise Search."""

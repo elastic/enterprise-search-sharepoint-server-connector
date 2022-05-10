@@ -10,6 +10,7 @@ Elastic Enterprise Search until a full sync happens, or until this module is use
 
 import json
 import os
+
 import requests
 
 from .base_command import BaseCommand
@@ -28,10 +29,6 @@ class DeletionSyncCommand(BaseCommand):
 
     def __init__(self, args):
         super().__init__(args)
-
-        config = self.config
-
-        self.ws_source = config.get_value("workplace_search.source_id")
 
     def deindexing_items(self, collection, ids, key):
         """Fetches the id's of deleted items from the sharepoint server and
@@ -59,8 +56,7 @@ class DeletionSyncCommand(BaseCommand):
                             doc.append(item_id)
                     if doc:
                         for chunk in split_list_into_buckets(doc, BATCH_SIZE):
-                            self.workplace_search_client.delete_documents(
-                                content_source_id=self.ws_source,
+                            self.workplace_search_custom_client.delete_documents(
                                 document_ids=chunk)
                     updated_items = global_ids_items[site_url].get(list_id)
                     if updated_items is None:
@@ -102,8 +98,7 @@ class DeletionSyncCommand(BaseCommand):
                     if resp is not None and resp.status_code == requests.codes['not_found']:
                         doc.append(list_id)
                 for chunk in split_list_into_buckets(doc, BATCH_SIZE):
-                    self.workplace_search_client.delete_documents(
-                        content_source_id=self.ws_source,
+                    self.workplace_search_custom_client.delete_documents(
                         document_ids=chunk)
                 for list_id in doc:
                     if list_id in global_ids_lists[site_url]:
@@ -133,8 +128,7 @@ class DeletionSyncCommand(BaseCommand):
                 if resp is not None and resp.status_code == requests.codes['not_found']:
                     doc.append(site_id)
             for chunk in split_list_into_buckets(doc, BATCH_SIZE):
-                self.workplace_search_client.delete_documents(
-                    content_source_id=self.ws_source,
+                self.workplace_search_custom_client.delete_documents(
                     document_ids=chunk)
             for site_id in doc:
                 ids["global_keys"][collection]["sites"].pop(site_id)

@@ -14,13 +14,18 @@ TEST_DIRECTORY = tests
 COVERAGE_THRESHOLD = 0 # In percents, so 50 = 50%
 EXEC_DIR = bin
 CMD_UPDATE = touch
-
+ES_VERSION_V8 ?= yes
 .DEFAULT_GOAL = help
 
 ifeq ($(OS),Windows_NT)
     detected_OS := Windows
     EXEC_DIR := Scripts
 	CMD_UPDATE := type nul >
+endif
+ifeq ($(ES_VERSION_V8), yes)
+	ES_LIB := elastic_enterprise_search==8.2.0
+else
+	ES_LIB := elastic_enterprise_search==7.17.0
 endif
 
 help:
@@ -41,6 +46,7 @@ help:
 .installed: .venv_init
 	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP_EXE} install -U pip
 	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP_EXE} install -r requirements.txt
+	${VENV_DIRECTORY}/${EXEC_DIR}/${PIP_EXE} install --force-reinstall ${ES_LIB}
 	${CMD_UPDATE} .installed
 
 # install_locally can be used to test the implementation after the changes were made to the module
@@ -63,6 +69,7 @@ test_connectivity: .installed .venv_init
 
 install_package: .installed
 	${PIP_CMD} install --user .
+	${PIP_CMD} install --force-reinstall ${ES_LIB}
 
 uninstall_package:
 	${PIP_CMD} uninstall ${PROJECT_DIRECTORY} -y

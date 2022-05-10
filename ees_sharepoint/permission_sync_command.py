@@ -46,7 +46,7 @@ class PermissionSyncCommand(BaseCommand):
         self.enable_permission = config.get_value("enable_document_permission")
         self.mapping_sheet_path = config.get_value("sharepoint_workplace_user_mapping")
         self.checkpoint = Checkpoint(config, self.logger)
-        self.permissions = Permissions(self.sharepoint_client, self.workplace_search_client, self.logger)
+        self.permissions = Permissions(self.sharepoint_client, self.workplace_search_custom_client, self.logger)
 
     def get_users_id(self):
         """This method returns the dictionary of dictionaries containing users and their id
@@ -89,11 +89,7 @@ class PermissionSyncCommand(BaseCommand):
         for collection in self.site_collections:
             for user_name, permission_list in permissions[collection].items():
                 try:
-                    self.workplace_search_client.add_user_permissions(
-                        content_source_id=self.ws_source,
-                        user=user_name,
-                        body={"permissions": permission_list},
-                    )
+                    self.workplace_search_custom_client.add_permissions(user_name, permission_list)
                     self.logger.info("Successfully indexed the permissions for user %s to the workplace" % (user_name))
                 except Exception as exception:
                     self.logger.exception(
@@ -122,7 +118,7 @@ class PermissionSyncCommand(BaseCommand):
                 user_names.update({collection: user_name_collection})
             user_groups = self.get_user_groups(user_names)
             # delete all the permissions present in workplace search
-            self.permissions.remove_all_permissions(config=self.config)
+            self.permissions.remove_all_permissions()
             if user_groups:
                 # add all the updated permissions
                 self.workplace_add_permission(user_groups)

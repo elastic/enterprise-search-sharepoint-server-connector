@@ -40,7 +40,7 @@ class IncrementalSyncCommand(BaseCommand):
                 sync_sharepoint = SyncSharepoint(
                     self.config,
                     self.logger,
-                    self.workplace_search_client,
+                    self.workplace_search_custom_client,
                     self.sharepoint_client,
                     start_time,
                     end_time,
@@ -76,7 +76,7 @@ class IncrementalSyncCommand(BaseCommand):
         :param queue: Shared queue to fetch the stored documents
         """
         thread_count = self.config.get_value("enterprise_search_sync_thread_count")
-        sync_es = SyncEnterpriseSearch(self.config, self.logger, self.workplace_search_client, queue)
+        sync_es = SyncEnterpriseSearch(self.config, self.logger, self.workplace_search_custom_client, queue)
 
         self.consumer(thread_count, sync_es.perform_sync)
 
