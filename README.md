@@ -517,7 +517,7 @@ workplace_search.source_id: '62461219647336183fc7652d'
 The [Enterprise Search base URL](https://www.elastic.co/guide/en/enterprise-search/current/endpoints-ref.html#enterprise-search-base-url) for your Elastic deployment.
 
 ```yaml
-enterprise_search.host_url: https://my-deployment.ent.europe-west1.gcp.cloud.es.io
+enterprise_search.host_url: https://my-deployment.ent.europe-west1.gcp.elastic-cloud.com:9243
 ```
 
 Note: While using Elastic Enterprise Search version 8.0.0 and above, port must be specified in [`enterprise_search.host_url`](#enterprise_searchhost_url-required)
