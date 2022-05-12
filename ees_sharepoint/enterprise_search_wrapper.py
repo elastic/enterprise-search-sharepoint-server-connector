@@ -173,7 +173,7 @@ class EnterpriseSearchWrapper:
             )
         except Exception as exception:
             self.logger.exception(
-                f"Error while checking for deleted files. Error: {exception}"
+                f"Error while checking for deleted documents. Error: {exception}"
             )
 
     def index_documents(self, documents, timeout):
@@ -189,6 +189,6 @@ class EnterpriseSearchWrapper:
                 request_timeout=timeout,
             )
         except Exception as exception:
-            self.logger.exception(f"Error while indexing the files. Error: {exception}")
+            self.logger.exception(f"Error while indexing the documents. Error: {exception}")
             raise exception
         return responses
