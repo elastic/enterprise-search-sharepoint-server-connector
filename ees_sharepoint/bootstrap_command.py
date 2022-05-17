@@ -15,6 +15,8 @@ from .base_command import BaseCommand
 
 
 class BootstrapCommand(BaseCommand):
+    """This class defines a method to create a content source.
+    """
     def execute(self):
         """This function attempts to create a Content Source.
 
@@ -22,39 +24,23 @@ class BootstrapCommand(BaseCommand):
         which instance of Elastic Enterprise Search will be used
         to create a Content Source."""
 
-        logger = self.logger
-        args = self.args
-        workplace_search = self.workplace_search_client
-
-        try:
-            resp = workplace_search.create_content_source(
-                body={
-                    "name": args.name,
-                    "schema": {
-                        "title": "text",
-                        "body": "text",
-                        "url": "text",
-                        "created_at": "date",
-                        "name": "text",
-                        "description": "text"
-                    },
-                    "display": {
-                        "title_field": "title",
-                        "description_field": "description",
-                        "url_field": "url",
-                        "detail_fields": [
-                            {"field_name": 'description', "label": 'Description'},
-                            {"field_name": 'body', "label": 'Content'},
-                            {"field_name": 'created_at', "label": 'Created At'}
-                        ],
-                        "color": "#000000"
-                    },
-                    "is_searchable": True
-                }
-            )
-
-            content_source_id = resp.get('id')
-            logger.info(
-                f"Created ContentSource with ID {content_source_id}. You may now begin indexing with content-source-id= {content_source_id}")
-        except Exception as exception:
-            logger.error("Could not create a content source, Error %s" % (exception))
+        schema = {
+            "title": "text",
+            "body": "text",
+            "url": "text",
+            "created_at": "date",
+            "name": "text",
+            "description": "text",
+        }
+        display = {
+            "title_field": "title",
+            "description_field": "description",
+            "url_field": "url",
+            "detail_fields": [
+                {"field_name": 'description', "label": 'Description'},
+                {"field_name": 'body', "label": 'Content'},
+                {"field_name": 'created_at', "label": 'Created At'}
+            ],
+            "color": "#000000"
+        }
+        self.workplace_search_custom_client.create_content_source(schema, display, name=self.args.name, is_searchable=True)

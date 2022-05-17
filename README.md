@@ -134,6 +134,14 @@ make install_package
 ```
 
 This command runs as the current user and installs the connector and its dependencies.
+Note: By Default, the package installed supports Enterprise Search version 8.0 or above. In order to use the connector for older versions of Enterprise Search(less than version 8.0) use the ES_VERSION_V8 argument while running make install_package or make install_locally command:
+
+
+```shell
+
+make install_package ES_VERSION_V8=no
+
+```
 
 ℹ️ Within a Windows environment, first install `make`:
 
@@ -509,8 +517,10 @@ workplace_search.source_id: '62461219647336183fc7652d'
 The [Enterprise Search base URL](https://www.elastic.co/guide/en/enterprise-search/current/endpoints-ref.html#enterprise-search-base-url) for your Elastic deployment.
 
 ```yaml
-enterprise_search.host_url: https://my-deployment.ent.europe-west1.gcp.cloud.es.io
+enterprise_search.host_url: https://my-deployment.ent.europe-west1.gcp.elastic-cloud.com:9243
 ```
+
+Note: While using Elastic Enterprise Search version 8.0.0 and above, port must be specified in [`enterprise_search.host_url`](#enterprise_searchhost_url-required)
 
 #### `enable_document_permission`
 
@@ -607,7 +617,7 @@ sharepoint_workplace_user_mapping: 'C:/Users/banon/sharepoint_1/identity_mapping
 
 The SharePoint Server connector package is compatible with Elastic deployments that meet the following criteria:
 
-- Elastic Enterprise Search version greater than or equal to 7.13.0 and less than 8.0.0.
+- Elastic Enterprise Search version greater than or equal to 7.13.0.
 - An Elastic subscription that supports this feature. Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic.co/subscriptions/cloud) and [self-managed](https://www.elastic.co/subscriptions) deployments.
 
 #### SharePoint Server compatibility

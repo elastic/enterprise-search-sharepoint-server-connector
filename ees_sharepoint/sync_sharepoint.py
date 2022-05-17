@@ -54,7 +54,7 @@ class SyncSharepoint:
             self,
             config,
             logger,
-            workplace_search_client,
+            workplace_search_custom_client,
             sharepoint_client,
             start_time,
             end_time,
@@ -62,7 +62,7 @@ class SyncSharepoint:
     ):
         self.config = config
         self.logger = logger
-        self.workplace_search_client = workplace_search_client
+        self.workplace_search_custom_client = workplace_search_custom_client
         self.sharepoint_client = sharepoint_client
 
         self.ws_source = config.get_value("workplace_search.source_id")
@@ -76,7 +76,7 @@ class SyncSharepoint:
         self.sharepoint_host = config.get_value("sharepoint.host_url")
         self.checkpoint = Checkpoint(config, logger)
         self.permissions = Permissions(
-            self.sharepoint_client, self.workplace_search_client, logger
+            self.sharepoint_client, self.workplace_search_custom_client, logger
         )
         self.queue = queue
 

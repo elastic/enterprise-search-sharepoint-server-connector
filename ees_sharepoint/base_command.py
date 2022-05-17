@@ -19,9 +19,8 @@ except ImportError:
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from elastic_enterprise_search import WorkplaceSearch
-
 from .configuration import Configuration
+from .enterprise_search_wrapper import EnterpriseSearchWrapper
 from .local_storage import LocalStorage
 from .sharepoint_client import SharePoint
 
@@ -64,25 +63,9 @@ class BaseCommand:
         return logger
 
     @cached_property
-    def workplace_search_client(self):
-        """Get the workplace search client instance for the running command.
-
-        Host and api key are taken from configuration file, if
-        a user was provided when running command, then basic auth
-        will be used instead.
-        """
-        args = self.args
-        host = self.config.get_value("enterprise_search.host_url")
-
-        if hasattr(args, "user") and args.user:
-            return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources", http_auth=(args.user, args.password)
-            )
-        else:
-            return WorkplaceSearch(
-                f"{host}/api/ws/v1/sources",
-                http_auth=self.config.get_value("workplace_search.api_key"),
-            )
+    def workplace_search_custom_client(self):
+        """Get the workplace search custom client instance for the running command."""
+        return EnterpriseSearchWrapper(self.logger, self.config, self.args)
 
     @cached_property
     def config(self):
