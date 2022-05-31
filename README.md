@@ -6,9 +6,6 @@
 
 Use this _Elastic Enterprise Search SharePoint Server connector package_ to deploy and run a SharePoint Server connector on your own infrastructure. The connector extracts and syncs data from a [Microsoft 365 SharePoint Server](https://docs.microsoft.com/en-us/sharepoint/sharepoint-server) service or tenant. The data is indexed into a Workplace Search content source within an Elastic deployment.
 
-⚠️ _This connector package is a **beta** feature._
-Beta features are subject to change and are not covered by the support SLA of generally available (GA) features. Elastic plans to promote this feature to GA in a future release.
-
 ℹ️ _This connector package requires a compatible Elastic subscription level._
 Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic.co/subscriptions/cloud) and [self-managed](https://www.elastic.co/subscriptions) deployments.
 
