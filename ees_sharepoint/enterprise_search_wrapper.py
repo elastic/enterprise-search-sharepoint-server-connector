@@ -23,7 +23,7 @@ class EnterpriseSearchWrapper:
         if self.version >= ENTERPRISE_V8:
             if hasattr(args, "user") and args.user:
                 self.workplace_search_client = WorkplaceSearch(
-                    self.host, bearer_auth=(args.user, args.password)
+                    self.host, basic_auth=(args.user, args.password)
                 )
             else:
                 self.workplace_search_client = WorkplaceSearch(
