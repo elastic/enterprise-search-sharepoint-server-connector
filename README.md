@@ -527,6 +527,8 @@ Whether the connector should sync [document-level permissions (DLP)](#use-docume
 enable_document_permission: Yes
 ```
 
+By default, it is set to `Yes` i.e. by default the connector will try to sync document-level permissions.
+
 #### `objects`
 
 Specifies which SharePoint objects to sync to Enterprise Search, and for each object, which fields to include and exclude. When the include/exclude fields are empty, all fields are synced.
@@ -555,6 +557,8 @@ A UTC timestamp the connector uses to determine which objects to extract and syn
 start_time: 2022-04-01T04:44:16Z
 ```
 
+By default it is set to 180 days from the current execution time.
+
 #### `end_time`
 
 A UTC timestamp the connector uses to determine which objects to extract and sync from SharePoint. Determines the *stopping* point for a [full sync](#full-sync).
@@ -562,6 +566,8 @@ A UTC timestamp the connector uses to determine which objects to extract and syn
 ```yaml
 end_time: 2022-04-01T04:44:16Z
 ```
+
+By default, it is set to current execution time.
 
 #### `log_level`
 
@@ -576,6 +582,8 @@ The level or severity that determines the threshold for [logging](#log-errors-an
 log_level: INFO
 ```
 
+By default, it is set to `INFO`.
+
 #### `retry_count`
 
 The number of retries to perform when there is a server error. The connector applies an exponential backoff algorithm to retries.
@@ -583,6 +591,8 @@ The number of retries to perform when there is a server error. The connector app
 ```yaml
 retry_count: 3
 ```
+
+By default, it is set to `3`.
 
 #### `sharepoint_sync_thread_count`
 
