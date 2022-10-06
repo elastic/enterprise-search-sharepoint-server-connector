@@ -21,6 +21,8 @@ class SharePoint:
         self.domain = config.get_value("sharepoint.domain")
         self.username = config.get_value("sharepoint.username")
         self.password = config.get_value("sharepoint.password")
+        self.secure_connection = config.get_value("sharepoint.secure_connection")
+        self.certificate_path = config.get_value("sharepoint.certificate_path")
 
     def get(self, rel_url, query, param_name):
         """ Invokes a GET call to the Sharepoint server
@@ -47,12 +49,17 @@ class SharePoint:
             url = f"{self.host}/{rel_url}{paginate_query}"
             skip += 5000
             retry = 0
+            if self.secure_connection and self.certificate_path:
+                verify = self.certificate_path
+            else:
+                verify = self.secure_connection
             while retry <= self.retry_count:
                 try:
                     response = requests.get(
                         url,
                         auth=HttpNtlmAuth(self.domain + "\\" + self.username, self.password),
-                        headers=request_headers
+                        headers=request_headers,
+                        verify=verify,
                     )
                     if response.ok:
                         if param_name in ["sites", "lists"] and response:

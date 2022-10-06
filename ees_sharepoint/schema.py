@@ -48,6 +48,16 @@ schema = {
         'required': True,
         'type': 'string'
     },
+    "sharepoint.secure_connection": {
+        "required": True,
+        "type": "boolean",
+        "default": True,
+    },
+    "sharepoint.certificate_path": {
+        "required": False,
+        "type": "string",
+        "empty": True
+    },
     'enable_document_permission': {
         'required': False,
         'type': 'boolean',
