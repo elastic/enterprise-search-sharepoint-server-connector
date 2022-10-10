@@ -12,6 +12,10 @@ sharepoint.host_url: http://sharepoint-host:14682/
 #Specifies the site collections whose contents the user wants to fetch and index.
 sharepoint.site_collections:
     - Connector
+#Validate the SSL certificate if host is secured. Specify Yes if host is secured and want to validate the SSL certificate, else No.
+sharepoint.secure_connection: Yes
+#The path of the SSL certificate to establish a secure connection with SharePoint server
+sharepoint.certificate_path: ""
 #Workplace Search configuration settings
 #Api key for Workplace search authentication
 workplace_search.api_key: "12345678"
