@@ -107,7 +107,7 @@ class SyncSharepoint:
             adapter_schema["id"] = field_id
         return adapter_schema
 
-    def fetch_sites(self, parent_site_url, sites, ids, index, start_time, end_time):
+    def fetch_sites(self, parent_site_url, sites, ids, index, start_time, end_time, document_list):
         """This method fetches sites from a collection and invokes the
         index permission method to get the document level permissions.
         If the fetching is not successful, it logs proper message.
@@ -117,8 +117,10 @@ class SyncSharepoint:
         :param index: index, boolean value
         :param start_time: start time for fetching the data
         :param end_time: end time for fetching the data
+        :param document_list: list of document of sites
         Returns:
-            document: response of sharepoint GET call, with fields specified in the schema
+            sites: list of site paths
+            documents: response of sharepoint GET call with fields specified in the schema
         """
         rel_url = f"{parent_site_url}/_api/web/webs"
         self.logger.info("Fetching the sites detail from url: %s" % (rel_url))
@@ -137,7 +139,6 @@ class SyncSharepoint:
             % len(response_data)
         )
         schema = self.get_schema_fields(SITES)
-        document = []
 
         if index:
             for i, _ in enumerate(response_data):
@@ -151,14 +152,14 @@ class SyncSharepoint:
                     doc["_allow_permissions"] = self.fetch_permissions(
                         key=SITES, site=response_data[i]["ServerRelativeUrl"]
                     )
-                document.append(doc)
+                document_list.append(doc)
                 ids["sites"].update({doc["id"]: response_data[i]["ServerRelativeUrl"]})
         for result in response_data:
             site_server_url = result.get("ServerRelativeUrl")
             sites.update({site_server_url: result.get("LastItemModifiedDate")})
-            self.fetch_sites(site_server_url, sites, ids, index, start_time, end_time)
+            self.fetch_sites(site_server_url, sites, ids, index, start_time, end_time, document_list)
 
-        documents = {"type": SITES, "data": document}
+        documents = {"type": SITES, "data": document_list}
         return sites, documents
 
     def fetch_lists(self, sites, ids, index):
@@ -522,7 +523,7 @@ class SyncSharepoint:
         """
         start_time, end_time = duration[0], duration[1]
         parent_site_url = f"/sites/{collection}"
-        sites_path = [{parent_site_url: self.end_time}]
+        sites_path = []
         sites, documents = self.fetch_sites(
             parent_site_url,
             {},
@@ -530,6 +531,7 @@ class SyncSharepoint:
             (SITES in self.objects),
             start_time,
             end_time,
+            []
         )
         if documents:
             self.queue.put(documents)
@@ -590,7 +592,7 @@ class SyncSharepoint:
         time_range_list = [(date_ranges[num], date_ranges[num + 1]) for num in range(0, thread_count)]
         sites = producer(thread_count, self.fetch_and_append_sites_to_queue,
                          [ids, collection], time_range_list, wait=True)
-        all_sites = []
+        all_sites = [{f"/sites/{collection}": self.end_time}]
         for site in sites:
             all_sites.extend(site)
 
@@ -605,10 +607,12 @@ class SyncSharepoint:
             lists_details.update(result[0])
             libraries_details.update(result[1])
 
-        list_items = split_documents_into_equal_chunks(lists_details, thread_count)
-        producer(thread_count, self.fetch_and_append_list_items_to_queue, [ids], list_items, wait=True)
+        if LIST_ITEMS in self.objects:
+            list_items = split_documents_into_equal_chunks(lists_details, thread_count)
+            producer(thread_count, self.fetch_and_append_list_items_to_queue, [ids], list_items, wait=True)
 
         # Fetch library details
-        libraries_items = split_documents_into_equal_chunks(libraries_details, thread_count)
-        producer(thread_count, self.fetch_and_append_drive_items_to_queue, [ids], libraries_items, wait=True)
+        if DRIVE_ITEMS in self.objects:
+            libraries_items = split_documents_into_equal_chunks(libraries_details, thread_count)
+            producer(thread_count, self.fetch_and_append_drive_items_to_queue, [ids], libraries_items, wait=True)
         return ids
