@@ -605,10 +605,12 @@ class SyncSharepoint:
             lists_details.update(result[0])
             libraries_details.update(result[1])
 
-        list_items = split_documents_into_equal_chunks(lists_details, thread_count)
-        producer(thread_count, self.fetch_and_append_list_items_to_queue, [ids], list_items, wait=True)
+        if LIST_ITEMS in self.objects:
+            list_items = split_documents_into_equal_chunks(lists_details, thread_count)
+            producer(thread_count, self.fetch_and_append_list_items_to_queue, [ids], list_items, wait=True)
 
         # Fetch library details
-        libraries_items = split_documents_into_equal_chunks(libraries_details, thread_count)
-        producer(thread_count, self.fetch_and_append_drive_items_to_queue, [ids], libraries_items, wait=True)
+        if DRIVE_ITEMS in self.objects:
+            libraries_items = split_documents_into_equal_chunks(libraries_details, thread_count)
+            producer(thread_count, self.fetch_and_append_drive_items_to_queue, [ids], libraries_items, wait=True)
         return ids
