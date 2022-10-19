@@ -118,12 +118,14 @@ class SyncSharepoint:
         :param start_time: start time for fetching the data
         :param end_time: end time for fetching the data
         Returns:
-            document: response of sharepoint GET call, with fields specified in the schema
+            sites: list of site paths
+            documents: response of sharepoint GET call with fields specified in the schema
         """
         rel_url = f"{parent_site_url}/_api/web/webs"
         self.logger.info("Fetching the sites detail from url: %s" % (rel_url))
         query = self.sharepoint_client.get_query(start_time, end_time, SITES)
         response = self.sharepoint_client.get(rel_url, query, SITES)
+        document_list = []
 
         response_data = get_results(self.logger, response, SITES)
         if not response_data:
@@ -131,13 +133,12 @@ class SyncSharepoint:
                 "No sites were created in %s for this interval: start time: %s and end time: %s"
                 % (parent_site_url, start_time, end_time)
             )
-            return sites, {}
+            return sites, []
         self.logger.info(
             "Successfully fetched and parsed %s sites response from SharePoint"
             % len(response_data)
         )
         schema = self.get_schema_fields(SITES)
-        document = []
 
         if index:
             for i, _ in enumerate(response_data):
@@ -151,15 +152,14 @@ class SyncSharepoint:
                     doc["_allow_permissions"] = self.fetch_permissions(
                         key=SITES, site=response_data[i]["ServerRelativeUrl"]
                     )
-                document.append(doc)
+                document_list.append(doc)
                 ids["sites"].update({doc["id"]: response_data[i]["ServerRelativeUrl"]})
         for result in response_data:
             site_server_url = result.get("ServerRelativeUrl")
             sites.update({site_server_url: result.get("LastItemModifiedDate")})
-            self.fetch_sites(site_server_url, sites, ids, index, start_time, end_time)
-
-        documents = {"type": SITES, "data": document}
-        return sites, documents
+            _, documents = self.fetch_sites(site_server_url, sites, ids, index, start_time, end_time)
+            document_list.extend(documents)
+        return sites, document_list
 
     def fetch_lists(self, sites, ids, index):
         """This method fetches lists from all sites in a collection and invokes the
@@ -523,7 +523,7 @@ class SyncSharepoint:
         start_time, end_time = duration[0], duration[1]
         parent_site_url = f"/sites/{collection}"
         sites_path = []
-        sites, documents = self.fetch_sites(
+        sites, document_list = self.fetch_sites(
             parent_site_url,
             {},
             ids,
@@ -531,6 +531,7 @@ class SyncSharepoint:
             start_time,
             end_time,
         )
+        documents = {"type": SITES, "data": document_list}
         if documents:
             self.queue.put(documents)
             self.logger.debug(
