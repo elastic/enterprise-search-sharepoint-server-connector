@@ -90,7 +90,6 @@ class PermissionSyncCommand(BaseCommand):
             for user_name, permission_list in permissions[collection].items():
                 try:
                     self.workplace_search_custom_client.add_permissions(user_name, permission_list)
-                    self.logger.info("Successfully indexed the permissions for user %s to the workplace" % (user_name))
                 except Exception as exception:
                     self.logger.exception(
                         "Error while indexing the permissions for user: %s to the workplace. Error: %s"
