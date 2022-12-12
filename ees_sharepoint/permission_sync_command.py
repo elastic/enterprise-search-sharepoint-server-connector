@@ -88,13 +88,7 @@ class PermissionSyncCommand(BaseCommand):
         :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection."""
         for collection in self.site_collections:
             for user_name, permission_list in permissions[collection].items():
-                try:
-                    self.workplace_search_custom_client.add_permissions(user_name, permission_list)
-                except Exception as exception:
-                    self.logger.exception(
-                        "Error while indexing the permissions for user: %s to the workplace. Error: %s"
-                        % (user_name, exception)
-                    )
+                self.workplace_search_custom_client.add_permissions(user_name, permission_list)
 
     def sync_permissions(self):
         """This method when invoked, checks the permission of SharePoint users and update those user
