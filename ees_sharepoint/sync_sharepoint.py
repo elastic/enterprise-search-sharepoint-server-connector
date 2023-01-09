@@ -7,7 +7,6 @@
 
 It's possible to run full syncs and incremental syncs with this module."""
 import os
-import re
 import threading
 from urllib.parse import urljoin
 
@@ -223,7 +222,7 @@ class SyncSharepoint:
                                 list_url=response_data[i]["ParentWebUrl"],
                                 itemid=None,
                             )
-            
+
                         doc["url"] = urljoin(
                             self.sharepoint_host,
                             relative_url,
