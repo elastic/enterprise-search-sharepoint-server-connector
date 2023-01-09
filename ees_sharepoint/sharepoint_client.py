@@ -114,12 +114,10 @@ class SharePoint:
             Returns:
                 query: query for each object"""
         query = ""
-        if param_name in ["sites", "lists"]:
+        if param_name == "sites":
             query = f"?$filter=(LastItemModifiedDate ge datetime'{start_time}') and (LastItemModifiedDate le datetime'{end_time}')"
+        elif param_name == "lists":
+            query = f"?$expand=RootFolder&$filter=(LastItemModifiedDate ge datetime'{start_time}') and (LastItemModifiedDate le datetime'{end_time}') and (Hidden eq false)"
         else:
-            query = f"$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"
-            if param_name == "list_items":
-                query = "?" + query
-            else:
-                query = "&" + query
+            query = f"&$filter=(Modified ge datetime'{start_time}') and (Modified le datetime'{end_time}')"
         return query

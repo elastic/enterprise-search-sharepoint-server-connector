@@ -207,8 +207,6 @@ class SyncSharepoint:
                     % (len(response_data), site)
                 )
 
-                base_list_url = urljoin(self.sharepoint_host, f"{site}/Lists/")
-
                 if index:
                     if not ids["lists"].get(site):
                         ids["lists"].update({site: {}})
@@ -216,6 +214,7 @@ class SyncSharepoint:
                         doc = {"type": LIST}
                         for field, response_field in schema_list.items():
                             doc[field] = response_data[i].get(response_field)
+                        relative_url = response_data[i]["RootFolder"].get('ServerRelativeUrl')
                         if self.enable_permission is True:
                             doc["_allow_permissions"] = self.fetch_permissions(
                                 key=LISTS,
@@ -224,9 +223,10 @@ class SyncSharepoint:
                                 list_url=response_data[i]["ParentWebUrl"],
                                 itemid=None,
                             )
+            
                         doc["url"] = urljoin(
-                            base_list_url,
-                            re.sub(r"[^ \w+]", "", response_data[i]["Title"]),
+                            self.sharepoint_host,
+                            relative_url,
                         )
                         document.append(doc)
                         ids["lists"][site].update(
@@ -278,7 +278,7 @@ class SyncSharepoint:
             for list_content, value in lists.items():
                 if parse(self.start_time) > parse(value[2]):
                     continue
-                rel_url = f"{value[0]}/_api/web/lists(guid'{list_content}')/items"
+                rel_url = f"{value[0]}/_api/web/lists(guid'{list_content}')/items?$select=*,FileRef"
                 self.logger.info(
                     "Fetching the items for list: %s from url: %s" % (value[1], rel_url)
                 )
@@ -300,19 +300,13 @@ class SyncSharepoint:
                     % (len(response_data), value[1])
                 )
 
-                list_name = re.sub(r"[^ \w+]", "", value[1])
-                base_item_url = urljoin(
-                    self.sharepoint_host,
-                    f"{value[0]}/Lists/{list_name}/DispForm.aspx?ID=",
-                )
                 document = []
                 if not ids["list_items"][value[0]].get(list_content):
                     ids["list_items"][value[0]].update({list_content: []})
                 rel_url = f"{value[0]}/_api/web/lists(guid'{list_content}')/items?$select=Attachments,AttachmentFiles,Title&$expand=AttachmentFiles"
 
-                new_query = "&" + query.split("?")[1]
                 file_response_data = self.sharepoint_client.get(
-                    rel_url, query=new_query, param_name="attachment"
+                    rel_url, query=query, param_name="attachment"
                 )
                 if file_response_data:
                     file_response_data = get_results(
@@ -351,7 +345,10 @@ class SyncSharepoint:
                             list_url=value[0],
                             itemid=str(response_data[i]["Id"]),
                         )
-                    doc["url"] = base_item_url + str(response_data[i]["Id"])
+                    relative_url = response_data[i].get("FileRef")
+
+                    doc["url"] = urljoin(self.sharepoint_host, relative_url)
+
                     document.append(doc)
                     if (
                             response_data[i].get("GUID")
