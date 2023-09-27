@@ -1,0 +1,12 @@
+agents:
+  provider: "gcp"
+  machineType: "n1-standard-2"
+  image: family/enterprise-search-ubuntu-2204-connectors-py
+
+steps:
+  - label: ":wrench: Linting"
+    command: 'make lint'
+  - label: ":safety_vest: Testing"
+    command: 'make test'
+  - label: ":safety_vest: Test Coverage"
+    command: 'make cover'
