@@ -1,0 +1,55 @@
+###################### catalog-info for enterprise-search-sharepoint-server-connector
+# Declare a Backstage Component for enterprise-search-sharepoint-server-connector
+# When doing changes validate them using https://backstage.elastic.dev/entity-validation
+---
+# yaml-language-server: $schema=https://json.schemastore.org/catalog-info.json
+apiVersion: "backstage.io/v1alpha1"
+kind: "Component"
+metadata:
+  name: "enterprise-search-sharepoint-server-connector"
+  description: "Enterprise Search Python Monolith"
+  annotations:
+    backstage.io/source-location: "url:https://github.com/elastic/enterprise-search-sharepoint-server-connector/"
+    github.com/project-slug: "elastic/enterprise-search-sharepoint-server-connector"
+    github.com/team-slug: "elastic/ingestion-team"
+    buildkite.com/project-slug: "elastic/enterprise-search-sharepoint-server-connector"
+  tags:
+    - "enterprise-search-sharepoint-server-connector"
+    - "enterprise-search"
+    - "ingestion-team"
+    - "buildkite"
+spec:
+  type: "library"
+  lifecycle: "production"
+  owner: "group:ingestion-team"
+
+---
+# yaml-language-server: $schema=https://gist.githubusercontent.com/elasticmachine/988b80dae436cafea07d9a4a460a011d/raw/rre.schema.json
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: search-sharepoint-server-connector
+  description: Buildkite Pipeline for enterprise-search-sharepoint-server-connector
+  links:
+    - title: Pipeline
+      url: https://buildkite.com/elastic/enterprise-search-sharepoint-server-connector
+
+spec:
+  type: buildkite-pipeline
+  owner: group:ingestion-team
+  system: buildkite
+  implementation:
+    apiVersion: buildkite.elastic.dev/v1
+    kind: Pipeline
+    metadata:
+      name: search-sharepoint-server-connector
+    spec:
+      repository: elastic/enterprise-search-sharepoint-server-connector
+      pipeline_file: ".buildkite/pipeline.yml"
+      teams:
+        ingestion-team:
+          access_level: MANAGE_BUILD_AND_READ
+        enterprise-search:
+          access_level: MANAGE_BUILD_AND_READ
+        everyone:
+          access_level: READ_ONLY
