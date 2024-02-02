@@ -2,9 +2,15 @@
 
 [Elastic Enterprise Search](https://www.elastic.co/guide/en/enterprise-search/current/index.html) | [Elastic Workplace Search](https://www.elastic.co/guide/en/workplace-search/current/index.html)
 
-# SharePoint Server connector package
+___
+**For new users, we recommend using our Elasticsearch native tools, rather than the standalone Workplace Search product. See [this blog post](https://www.elastic.co/blog/evolution-workplace-search-private-data-elasticsearch) for more information about upgrading your internal knowledge search, to make it an amazing experience for your users!**
 
-Use this _Elastic Enterprise Search SharePoint Server connector package_ to deploy and run a SharePoint Server connector on your own infrastructure. The connector extracts and syncs data from a [Microsoft 365 SharePoint Server](https://docs.microsoft.com/en-us/sharepoint/sharepoint-server) service or tenant. The data is indexed into a Workplace Search content source within an Elastic deployment.
+We recommend using the new [Elastic SharePoint Server connector](https://www.elastic.co/guide/en/enterprise-search/current/connectors-sharepoint.html) to ingest your content from SharePoint Server in regular Elasticsearch indices.
+___
+
+# Workplace Search: SharePoint Server connector package
+
+Use this _Elastic Enterprise Search SharePoint Server connector package_ to deploy and run a SharePoint Server content source on your own infrastructure. The connector package extracts and syncs data from a [Microsoft 365 SharePoint Server](https://docs.microsoft.com/en-us/sharepoint/sharepoint-server) service or tenant. The data is indexed into a Workplace Search content source within an Elastic deployment.
 
 ℹ️ _This connector package requires a compatible Elastic subscription level._
 Refer to the Elastic subscriptions pages for [Elastic Cloud](https://www.elastic.co/subscriptions/cloud) and [self-managed](https://www.elastic.co/subscriptions) deployments.
