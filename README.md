@@ -1,14 +1,16 @@
-![](logo-enterprise-search.png)
-
+# Workplace Search: SharePoint Server connector package
 [Elastic Enterprise Search](https://www.elastic.co/guide/en/enterprise-search/current/index.html) | [Elastic Workplace Search](https://www.elastic.co/guide/en/workplace-search/current/index.html)
 
+> [!IMPORTANT]
+> _**Enterprise Search will be discontinued in 9.0.**_
+>
+> Starting with Elastic version 9.0, we're deprecating the standalone Enterprise Search product with its included features and functionalities (including [Workplace Search](https://www.elastic.co/guide/en/workplace-search/8.x/index.html) and [App Search](https://www.elastic.co/guide/en/app-search/8.x/index.html)). They remain supported in their current form in version 8.x and will only receive security upgrades and fixes. Workplace Search Connector Packages will continue to be supported in their current form throughout 8.x versions, according to our EOL policy: https://www.elastic.co/support/eol.
+> We recommend transitioning to our actively developed [Elastic Stack](https://www.elastic.co/elastic-stack) tools for your search use cases. However, if you're still using any Enterprise Search products, we recommend using the latest stable release.
+>
+> Here are some useful links with more information:
+> * Enterprise Search FAQ: https://www.elastic.co/resources/enterprise-search/enterprise-search-faq
+> * Migrating to 9.x from Enterprise Search 8.x versions: https://www.elastic.co/guide/en/enterprise-search/current/upgrading-to-9-x.html
 ___
-**For new users, we recommend using our Elasticsearch native tools, rather than the standalone Workplace Search product. See [this blog post](https://www.elastic.co/blog/evolution-workplace-search-private-data-elasticsearch) for more information about upgrading your internal knowledge search, to make it an amazing experience for your users!**
-
-We recommend using the new [Elastic SharePoint Server connector](https://www.elastic.co/guide/en/enterprise-search/current/connectors-sharepoint.html) to ingest your content from SharePoint Server in regular Elasticsearch indices.
-___
-
-# Workplace Search: SharePoint Server connector package
 
 Use this _Elastic Enterprise Search SharePoint Server connector package_ to deploy and run a SharePoint Server content source on your own infrastructure. The connector package extracts and syncs data from a [Microsoft 365 SharePoint Server](https://docs.microsoft.com/en-us/sharepoint/sharepoint-server) service or tenant. The data is indexed into a Workplace Search content source within an Elastic deployment.
 
