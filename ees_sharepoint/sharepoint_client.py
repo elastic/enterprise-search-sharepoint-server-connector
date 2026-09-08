@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""sharepoint_client allows to call Sharepoint or make queries for it."""
+"""sharepoint_client allows calling Sharepoint or making queries for it."""
 
 import time
 import requests
@@ -108,7 +108,7 @@ class SharePoint:
 
     @staticmethod
     def get_query(start_time, end_time, param_name):
-        """ returns the query for each objects
+        """ returns the query for each object
             :param start_time: start time of the interval for fetching the documents
             :param end_time: end time of the interval for fetching the documents
             Returns:

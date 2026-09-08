@@ -7,7 +7,7 @@
 
 Connector can run multiple commands such as full-sync, incremental-sync,
 etc. This module provides convenience interface defining the shared
-objects and methods that will can be used by commands."""
+objects and methods that can be used by commands."""
 import logging
 
 # For Python>=3.8 cached_property should be imported from functools,

@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""This module allows to remove recently deleted documents from Elastic Enterprise Search.
+"""This module allows removing recently deleted documents from Elastic Enterprise Search.
 
 Documents that were deleted in Sharepoint Server instance will still be available in
 Elastic Enterprise Search until a full sync happens, or until this module is used."""
@@ -22,7 +22,7 @@ BATCH_SIZE = 100
 
 
 class DeletionSyncCommand(BaseCommand):
-    """DeletionSyncCommand class allows to remove instances of specific Sharepoint Object types.
+    """DeletionSyncCommand class allows removing instances of specific Sharepoint Object types.
 
     It provides a way to remove items, lists and sites from Elastic Enterprise Search
     that were deleted in Sharepoint Server instance."""
@@ -31,7 +31,7 @@ class DeletionSyncCommand(BaseCommand):
         super().__init__(args)
 
     def deindexing_items(self, collection, ids, key):
-        """Fetches the id's of deleted items from the sharepoint server and
+        """Fetches the ids of deleted items from the sharepoint server and
            invokes delete documents api for those ids to remove them from
            workplace search"""
         logger = self.logger
@@ -77,7 +77,7 @@ class DeletionSyncCommand(BaseCommand):
         return ids
 
     def deindexing_lists(self, collection, ids):
-        """Fetches the id's of deleted lists from the sharepoint server and
+        """Fetches the ids of deleted lists from the sharepoint server and
             further removes them from workplace search by invoking the delete
             document api.
             Returns:
@@ -112,7 +112,7 @@ class DeletionSyncCommand(BaseCommand):
         return ids
 
     def deindexing_sites(self, collection, ids):
-        """Fetches the ids' of deleted sites from the sharepoint server and
+        """Fetches the ids of deleted sites from the sharepoint server and
             invokes delete documents api for those ids to remove them from
             workplace search
         """

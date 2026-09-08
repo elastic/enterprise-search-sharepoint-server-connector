@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""This module allows to run a deletion sync against a Sharepoint Server instance.
+"""This module allows running a deletion sync against a Sharepoint Server instance.
 
 It will attempt to remove from Enterprise Search instance the documents
 that have been deleted from the third-party system."""
@@ -33,7 +33,7 @@ class PermissionSyncCommand(BaseCommand):
     """This class contains logic to sync user permissions from Sharepoint Server.
 
     It can be used to run the job that will periodically sync permissions
-    from Sharepoint Server to Elastic Enteprise Search."""
+    from Sharepoint Server to Elastic Enterprise Search."""
 
     def __init__(self, args):
         super().__init__(args)
@@ -83,8 +83,8 @@ class PermissionSyncCommand(BaseCommand):
         return user_group
 
     def workplace_add_permission(self, permissions):
-        """This method when invoked would index the permission provided in the paramater
-        for the user in paramter user_name
+        """This method when invoked would index the permission provided in the parameter
+        for the user in parameter user_name
         :param permissions: dictionary of dictionaries containing permissions of all the users in each site-collection."""
         for collection in self.site_collections:
             for user_name, permission_list in permissions[collection].items():

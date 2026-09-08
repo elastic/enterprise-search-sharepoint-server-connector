@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""This module allows to create Content Source in Elastic Enterprise Search.
+"""This module allows creating Content Source in Elastic Enterprise Search.
 
 It can be used to create a Content Source that will be used to upload the
 data from Sharepoint Server to Elastic Enterprise Search instance.

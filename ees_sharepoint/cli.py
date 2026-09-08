@@ -5,7 +5,7 @@
 #
 """Cli module contains entry point for the package.
 
-Endpoint provides a meaningful piece of functionallity
+Endpoint provides a meaningful piece of functionality
 related to uploading data from Sharepoint Server 2016
 to Elastic Enterprise Search with subcommands."""
 
@@ -38,7 +38,7 @@ def _parser():
     """Get a configured parser for the module.
 
     This method will initialize argument parser with a list
-    of avaliable commands and their options."""
+    of available commands and their options."""
     parser = ArgumentParser(prog="ees_sharepoint")
     parser.add_argument(
         "-c",

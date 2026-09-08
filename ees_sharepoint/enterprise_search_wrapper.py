@@ -110,7 +110,7 @@ class EnterpriseSearchWrapper:
 
     def remove_permissions(self, permission):
         """Removes one or more permissions from an existing set of permissions
-        :param permission: dictionary containing permission of perticular user
+        :param permission: dictionary containing permission of particular user
         """
         try:
             if self.version >= ENTERPRISE_V8:
