@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""usergroup_permissions module allows to manage user permissions.
+"""usergroup_permissions module allows managing user permissions.
 
 It can be used to fetch user permissions from Sharepoint Server
 or clean permissions in Elastic Enterprise Search"""

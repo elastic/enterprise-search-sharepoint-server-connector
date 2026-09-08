@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""sync_sharepoint module allows to sync data to Elastic Enterprise Search.
+"""sync_sharepoint module allows syncing data to Elastic Enterprise Search.
 
 It's possible to run full syncs and incremental syncs with this module."""
 import os
@@ -112,7 +112,7 @@ class SyncSharepoint:
         If the fetching is not successful, it logs proper message.
         :param parent_site_url: parent site relative path
         :param sites: dictionary of site path and it's last updated time
-        :param ids: structure containing id's of all objects
+        :param ids: structure containing ids of all objects
         :param index: index, boolean value
         :param start_time: start time for fetching the data
         :param end_time: end time for fetching the data
@@ -165,7 +165,7 @@ class SyncSharepoint:
         index permission method to get the document level permissions.
         If the fetching is not successful, it logs proper message.
         :param sites: dictionary of site path and it's last updated time
-        :param ids: structure containing id's of all objects
+        :param ids: structure containing ids of all objects
         :param index: index, boolean value
         Returns:
             document: response of sharepoint GET call, with fields specified in the schema
@@ -254,10 +254,10 @@ class SyncSharepoint:
 
     def fetch_items(self, lists, ids):
         """This method fetches items from all the lists in a collection and
-        invokes theindex permission method to get the document level permissions.
+        invokes the index permission method to get the document level permissions.
         If the fetching is not successful, it logs proper message.
         :param lists: document lists
-        :param ids: structure containing id's of all objects
+        :param ids: structure containing ids of all objects
         Returns:
             document: response of sharepoint GET call, with fields specified in the schema
         """
@@ -365,7 +365,7 @@ class SyncSharepoint:
         invokes the index permission method to get the document level permissions.
         If the fetching is not successful, it logs proper message.
         :param libraries: document lists
-        :param ids: structure containing id's of all objects
+        :param ids: structure containing ids of all objects
         """
         responses = []
         #  here value is a list of url and title of the library

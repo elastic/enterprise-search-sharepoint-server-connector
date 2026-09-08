@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""This module allows to run an incremental sync against a Sharepoint Server instance.
+"""This module allows running an incremental sync against a Sharepoint Server instance.
 
 It will attempt to sync documents that have changed or have been added in the
 third-party system recently and ingest them into Enterprise Search instance.
@@ -21,7 +21,7 @@ from .utils import split_date_range_into_chunks
 
 
 class IncrementalSyncCommand(BaseCommand):
-    """This class start execution of incremental sync feature."""
+    """This class starts execution of incremental sync feature."""
 
     def start_producer(self, queue):
         """This method starts async calls for the producer which is responsible for fetching documents from the
@@ -81,7 +81,7 @@ class IncrementalSyncCommand(BaseCommand):
         self.consumer(thread_count, sync_es.perform_sync)
 
     def execute(self):
-        """This function execute the start function."""
+        """This function executes the start function."""
         queue = ConnectorQueue(self.logger)
 
         self.start_producer(queue)

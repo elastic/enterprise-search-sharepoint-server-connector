@@ -3,7 +3,7 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""This module allows to run a full sync against a Sharepoint Server instance.
+"""This module allows running a full sync against a Sharepoint Server instance.
 
 It will attempt to sync absolutely all documents that are available in the
 third-party system and ingest them into Enterprise Search instance."""
@@ -17,7 +17,7 @@ from .utils import split_date_range_into_chunks
 
 
 class FullSyncCommand(BaseCommand):
-    """This class start execution of fullsync feature."""
+    """This class starts execution of fullsync feature."""
 
     def start_producer(self, queue):
         """This method starts async calls for the producer which is responsible for fetching documents from
@@ -76,7 +76,7 @@ class FullSyncCommand(BaseCommand):
         self.consumer(thread_count, sync_es.perform_sync)
 
     def execute(self):
-        """This function execute the start function."""
+        """This function executes the start function."""
         queue = ConnectorQueue(self.logger)
 
         self.start_producer(queue)

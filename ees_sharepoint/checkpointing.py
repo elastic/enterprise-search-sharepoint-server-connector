@@ -3,13 +3,13 @@
 # or more contributor license agreements. Licensed under the Elastic License 2.0;
 # you may not use this file except in compliance with the Elastic License 2.0.
 #
-"""Checkpointing module allows to start sync from point in time.
+"""Checkpointing module allows starting sync from a point in time.
 
-Checkpointing module contains functions that allow to manage checkpoints,
-such as set a checkpoint and get a checkpoint.
+Checkpointing module contains functions that allow managing checkpoints,
+such as setting a checkpoint and getting a checkpoint.
 
 Checkpoints help with incremental or interrupted synchronizations,
-remembering the last moment of time when sync successfully finshed,
+remembering the last moment of time when sync successfully finished,
 so that later next sync can continue from that place.
 """
 import os
@@ -21,7 +21,7 @@ CHECKPOINT_PATH = os.path.join(os.path.dirname(__file__), "checkpoint.json")
 class Checkpoint:
     """Checkpoints class is responsible for checkpoint operations.
 
-    This class allows to get and set checkpoints, storing them in
+    This class allows getting and setting checkpoints, storing them in
     file system."""
     def __init__(self, config, logger):
         self.config = config
